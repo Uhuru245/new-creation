@@ -169,7 +169,9 @@ function markVerse(v, force = false) {
   const el = here ? $('#v' + v) : null;
   if (!force && el && el.classList.contains('speaking')) return; // same verse still being read
   $$('.verse.speaking').forEach((e) => e.classList.remove('speaking'));
+  const art = $('.scripture'); if (art) art.classList.toggle('following', !!el);
   if (!el) return; el.classList.add('speaking');
+  if (art) { let tag = $('.now-reading', art); if (!tag) { tag = document.createElement('p'); tag.className = 'now-reading'; tag.setAttribute('aria-live', 'off'); art.prepend(tag); } tag.textContent = `Now reading: verse ${v}`; }
   // Keep the verse in view unless the reader has scrolled away on purpose in the last few seconds.
   if (prefs().follow && Date.now() - (window.__ncUserScroll || 0) > 4000) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }

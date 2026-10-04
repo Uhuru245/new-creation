@@ -1,5 +1,5 @@
 // New Creation service worker: fast start, offline reading, safe updates.
-const VERSION = 'nc-2026-10-04-4';
+const VERSION = 'nc-2026-10-04-5';
 const SHELL = ['./', 'index.html', 'config.js', 'css/app.css', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png',
   'js/app.js', 'js/util.js', 'js/api.js', 'js/bible.js', 'js/state.js', 'js/morph.js', 'js/audio.js', 'js/pad.js',
   'js/views/today.js', 'js/views/bible.js', 'js/views/original.js', 'js/views/circle.js', 'js/views/journey.js', 'js/views/me.js', 'js/views/leader.js', 'js/views/privacy.js', 'js/views/auth.js', 'js/views/listen-help.js',

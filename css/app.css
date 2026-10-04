@@ -326,7 +326,19 @@ input[type=range]{accent-color:var(--forest);min-height:32px}
 body.has-player main{padding-bottom:calc(var(--nav-h) + 110px + env(safe-area-inset-bottom))}
 body.has-player .toast{bottom:calc(var(--nav-h) + 92px + env(safe-area-inset-bottom))}
 @media (min-width:1024px){.player{left:248px;right:auto;width:min(520px,calc(100vw - 280px));bottom:20px} body.has-player main{padding-bottom:120px} body.has-player .toast{bottom:104px}}
-.verse.speaking{background:var(--gold-soft,rgba(184,146,47,.18));border-radius:6px;box-shadow:0 0 0 3px var(--gold-soft,rgba(184,146,47,.18))}
+:root{--hl-now:#F7DC8E;--hl-edge:#8A6206;--hl-ink:#1D1A12}
+:root[data-theme="sepia"]{--hl-now:#F0CF73;--hl-edge:#8E6412;--hl-ink:#24190A}
+:root[data-theme="dark"]{--hl-now:#6B5212;--hl-edge:#F2C94C;--hl-ink:#FFF8E6}
+/* While listening: the verse being read is lit up, everything else steps back so the eye finds it at once. */
+.scripture.following .verse{color:var(--ink-3);transition:color .35s ease,background-color .35s ease}
+.scripture.following .verse.speaking{color:var(--hl-ink);background:var(--hl-now);border-radius:8px;padding:3px 5px;margin:0 -5px;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;box-shadow:0 0 0 2px var(--hl-edge),0 6px 18px rgba(0,0,0,.12)}
+.scripture.following .verse.speaking sup{color:var(--hl-ink);background:var(--hl-edge);color:#fff;border-radius:999px;padding:0 6px;font-weight:700}
+:root[data-theme="dark"] .scripture.following .verse.speaking sup{color:#1A1405}
+.now-reading{position:sticky;top:calc(var(--top-h) + 8px);z-index:5;display:none;width:max-content;margin:0 auto 10px;padding:6px 12px;border-radius:999px;background:var(--hl-edge);color:#fff;font-size:13px;font-weight:700;box-shadow:var(--shadow-lg)}
+:root[data-theme="dark"] .now-reading{color:#1A1405}
+.scripture.following .now-reading{display:block}
+@media (prefers-reduced-motion:reduce){.scripture.following .verse{transition:none}}
 .listen-btn{display:inline-flex;align-items:center;gap:8px}
 .switch{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
 .switch input{width:22px;height:22px;accent-color:var(--forest)}
