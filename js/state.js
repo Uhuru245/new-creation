@@ -31,11 +31,13 @@ function apply(data, why) {
 // Show the last saved copy instantly; refresh from the server in the background.
 export function loadSnapshot() { const s = store.pget('snap', null); if (s && s.me && s.challenge) { apply(s, 'snapshot'); S.priv = store.pget('priv', []); return true; } return false; }
 export async function refresh() {
-  const data = await call('state', S.token, { lite: true });
+  const tok = S.token; const still = () => S.token && S.token === tok; // ignore answers that arrive after signing out
+  const data = await call('state', tok, { lite: true });
+  if (!still()) return null;
   S.fresh = true; apply(data, 'server');
-  call('private', S.token).then((p) => { S.priv = p; store.pset('priv', p); emit('private'); }).catch(() => {});
+  call('private', tok).then((p) => { if (!still()) return; S.priv = p; store.pset('priv', p); emit('private'); }).catch(() => {});
   // Warm the Circle so it opens instantly.
-  call('posts', S.token, { limit: 20 }).then((r) => store.pset('posts', r.posts)).catch(() => {});
+  call('posts', tok, { limit: 20 }).then((r) => { if (still()) store.pset('posts', r.posts); }).catch(() => {});
   return data;
 }
 

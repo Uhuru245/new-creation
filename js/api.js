@@ -79,3 +79,12 @@ function setStatus(s) { status = s; listeners.forEach((l) => l({ type: 'status',
 window.addEventListener('online', () => flush());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && pendingCount()) flush(); });
 setInterval(() => { if (pendingCount() && navigator.onLine !== false) flush(); }, 30000);
+
+// Fire-and-forget request that survives the page reloading (used for signing out after local data is already cleared).
+export async function sendAndForget(fn, args) {
+  try {
+    if (DEMO) { const d = await demoBackend(); return d.call(fn, args); }
+    if (!CFG.apiUrl) return;
+    fetch(CFG.apiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args, env: ENV }), keepalive: true, credentials: 'omit' }).catch(() => {});
+  } catch (e) { /* the server session simply expires */ }
+}

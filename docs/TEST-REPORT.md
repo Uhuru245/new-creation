@@ -89,3 +89,17 @@ Timings on the published site: opening screen 0.57 s; returning member sees Toda
 | Full browser journey suite after the change | 80 passed, 0 failed |
 
 Bug found and fixed while testing: when fresh data arrived from the server while a member was opening another page from Today, the app could jump back to Today. It now only refreshes the page that is showing.
+
+## Move to www.mret.co.za/new-creation/ (2026-10-04)
+
+www.mret.co.za is now a home page (separate repository Uhuru245/Uhuru245.github.io). New Creation is served at https://www.mret.co.za/new-creation/, and the old github.io address forwards there.
+
+| Check | Result |
+|---|---|
+| Home page: swipe, arrows, drag into the slot opens New Creation, Coaching marked "coming soon", accessibility, no sideways scroll | 10 passed |
+| New Creation browser journeys at the new address | 80 passed, 0 failed |
+| Listen feature at the new address | 13 passed |
+| Live sign-in and Leader tools against TEST data | Passed |
+| Service worker scope is /new-creation/ | Passed |
+
+Bug found and fixed: signing out waited for the server before clearing the phone, and a slow answer arriving afterwards could save the Circle cache again. The app now clears the phone first, then tells the server, and ignores answers that arrive after sign-out.

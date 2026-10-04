@@ -1,6 +1,7 @@
 // Me: profile, reading preferences, saved items, invitation, reminders, privacy and account.
 import { $, $$, esc, icon, toast, sheet, closeSheet, store, copyText, shareText, waLink, download, fmtDate, todayISO } from '../util.js';
 import { call, DEMO } from '../api.js';
+import { sendAndForget } from '../api.js';
 import { S, privList, setPriv, signOutLocal } from '../state.js';
 import { META, TRANSLATIONS, loadBook, refLabel } from '../bible.js';
 import { setTheme } from './bible.js';
@@ -75,7 +76,7 @@ export function mount(root) {
   $('#nmSave', root).onclick = async () => { try { const r = await call('settings', S.token, { name: $('#nm', root).value }); S.data.me.name = r.name; toast('Name updated.'); go('#/me'); } catch (x) { toast(x.message); } };
   $('#npSave', root).onclick = async () => { const v = $('#np', root).value; if (!/^\d{4}$/.test(v)) { toast('Choose a PIN of exactly 4 numbers.'); return; } try { await call('setPin', S.token, v); $('#np', root).value = ''; toast('PIN changed.'); } catch (x) { toast(x.message); } };
   $('#exp', root).onclick = async () => { try { const data = await call('exportMe', S.token); download(`new-creation-my-data-${todayISO()}.json`, JSON.stringify(data, null, 2)); toast('Your data has been downloaded.'); } catch (x) { toast(x.message); } };
-  $('#out', root).onclick = async () => { const b = $('#out', root); b.disabled = true; try { await call('signOut', S.token); } catch (e) {} signOutLocal(); location.hash = '#/'; location.reload(); };
+  $('#out', root).onclick = async () => { const b = $('#out', root); b.disabled = true; const tok = S.token; signOutLocal(); await sendAndForget('signOut', [tok]); location.hash = '#/'; location.reload(); }; // clear this device first, then tell the server
   $('#del', root).onclick = () => {
     const s = sheet(`<h3>Delete your account?</h3><p class="muted">This permanently removes your profile, reading progress, posts, encouragements and private notes from New Creation. It can't be undone. You may want to download your data first.</p>
       <label class="field" style="margin-top:12px">Enter your PIN to confirm<input class="input otp" id="dp" inputmode="numeric" maxlength="4" autocomplete="current-password"></label><p class="err" id="derr" role="alert"></p>
