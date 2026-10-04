@@ -22,3 +22,9 @@ Counts after conversion: 31,102 verses (BSB, KJV), 31,103 (WEB; Romans 14 and 16
 - There are no verified notes on idioms or wordplay in these sources, so the app says so rather than writing its own.
 - No audio: no verified, authorised audio source was available.
 - Licensed modern translations (NIV, ESV, NLT and so on) are not stored in the app. Their licences don't allow offline storage and search without an agreement.
+
+## Audio narration
+
+- Berean Standard Bible audio, narrated by Bob Souer, Barry Hays and Jordan Gilbert. The Berean Bible team has dedicated these recordings to the public domain (CC0 1.0), as stated at https://bereanbible.com/audio/. They are streamed from https://openbible.com/audio/ and are not stored in this repository.
+- "Phone voice" uses the speech engine built into the member's device (Web Speech API). It reads the text on screen word for word; nothing is generated or changed.
+- Not used: the "David" BSB and KJV recordings on the same site, because the narrator could not be confirmed as a human reader.

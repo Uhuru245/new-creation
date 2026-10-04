@@ -4,6 +4,8 @@ import { call } from '../api.js';
 import { S, counts, setRead, keyRead, dayIndex } from '../state.js';
 import { parseRef, bookName, readLabel } from '../bible.js';
 import { go } from '../app.js';
+import { listen } from '../audio.js';
+import { offerMarkRead } from './listen-help.js';
 
 export const title = 'Today';
 // The GOSPEL discussion framework used since the first version of the app:
@@ -67,6 +69,7 @@ export async function render() {
       <p class="sub">${allDone ? 'All done for today. Well done.' : `${keys.length - c.todayDone} of ${keys.length} chapter${keys.length === 1 ? '' : 's'} to go.`}</p></div>
       ${ring(c.todayDone / Math.max(1, keys.length), `${c.todayDone}/${keys.length} chapters read today`)}</div>
     <div class="chlist">${keys.map((k) => chapterRow(k, true)).join('')}</div>
+    <button class="btn on-hero block listen-btn" id="listenToday">${icon('listen')} Listen to today's reading</button>
     ${nextKey ? `<a class="btn on-hero block" href="#/bible/${nextKey.replace('.', '/')}">${icon('bible')} Continue reading: ${esc(bookName(nextKey.split('.')[0]))} ${nextKey.split('.')[1]}</a>` : `<a class="btn on-hero block" href="#/circle?compose=reflection&day=${D.n}">${icon('chat')} Share what God showed you</a>`}
   </section>`}
   <section class="card" aria-labelledby="progT"><div class="card-head"><h3 id="progT">Your progress</h3><span class="pill ok">${pct}% of the plan</span></div>
@@ -86,6 +89,9 @@ export async function render() {
 }
 
 export function mount(root) {
+  const lt = $('#listenToday', root);
+  if (lt) lt.onclick = () => { const keys = counts().todayKeys; const first = Math.max(0, keys.findIndex((k) => !keyRead(k)));
+    listen(keys.map((k) => ({ b: k.split('.')[0], c: Number(k.split('.')[1]) })), { at: first, onDone: offerMarkRead }); };
   $$('.check', root).forEach((b) => b.onclick = async () => {
     if (b.dataset.busy) return; b.dataset.busy = '1';
     const key = b.dataset.key, on = b.getAttribute('aria-checked') !== 'true'; const [bk, c] = key.split('.');
@@ -98,5 +104,5 @@ export function mount(root) {
   $$('[data-approve]', root).forEach((b) => b.onclick = async () => { const [k, key] = b.dataset.approve.split('|'); b.disabled = true; b.textContent = 'Approving…';
     try { S.data.content = await call('approve', S.token, k, key); toast('Approved. Everyone can now see it.'); go('#/today'); } catch (e) { toast(e.message); b.disabled = false; } });
 }
-export function onData() { if (!document.activeElement || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) go('#/today'); }
+export function onData() { const h = location.hash.replace(/^#\/?/, ''); if ((h === '' || h.startsWith('today')) && (!document.activeElement || !/INPUT|TEXTAREA/.test(document.activeElement.tagName))) go(location.hash || '#/today'); }
 void readLabel; void dayIndex;

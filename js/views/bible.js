@@ -3,11 +3,13 @@ import { $, $$, esc, icon, toast, sheet, closeSheet, store, copyText, shareText,
 import { S, setRead, keyRead, privItem, setPriv } from '../state.js';
 import { META, TRANSLATIONS, loadChapter, bookName, chapterCount, isNT, parseRef, refLabel, search } from '../bible.js';
 import { go } from '../app.js';
+import { listen, onListen, isPlaying, toggle as audioToggle, state as audioState, openSheet as audioSheet } from '../audio.js';
+import { offerMarkRead } from './listen-help.js';
 
 export const title = (r) => (r.parts[0] ? `${bookName(r.parts[0]) || 'Bible'} ${r.parts[1] || ''}` : 'Bible');
 const tr = () => store.get('nc.tr', 'bsb');
 const HL = [['yellow', 'Yellow'], ['green', 'Green'], ['blue', 'Blue'], ['rose', 'Rose']];
-let sel = new Set(), cur = null, posTimer = null;
+let sel = new Set(), cur = null, posTimer = null, offListen = null;
 // The KJV text marks words the translators added (printed in italics) with [square brackets].
 const kjvItalics = (h) => h.replace(/\[([^\]]+)\]/g, '<i>$1</i>');
 const plain = (t) => String(t).replace(/[\[\]]/g, '');
@@ -35,6 +37,7 @@ export async function render(r) {
       <button class="refbtn" id="pick" aria-haspopup="dialog" aria-label="Choose book and chapter. Current: ${esc(bookName(w.b))} ${w.c}">${esc(bookName(w.b))} ${w.c} ${icon('down')}</button>
       <button class="trbtn" id="trSw" aria-haspopup="dialog" aria-label="Translation: ${TRANSLATIONS[tr()].name}">${TRANSLATIONS[tr()].short}</button>
       <span class="spacer"></span>
+      <button class="icon-btn" id="listen" aria-label="${isPlaying(w.b, w.c) ? 'Pause listening' : `Listen to ${esc(bookName(w.b))} ${w.c}`}" aria-pressed="${isPlaying(w.b, w.c)}">${icon(isPlaying(w.b, w.c) ? 'pause' : 'listen')}</button>
       <a class="icon-btn" href="#/bible?search=" aria-label="Search the Bible">${icon('search')}</a>
       <button class="icon-btn" id="disp" aria-label="Reading settings">${icon('textsize')}</button>
     </div>
@@ -65,6 +68,8 @@ export function mount(root, r) {
   $('#trSw', root).onclick = () => sheet(`<h3>Translation</h3><div class="stack-sm" style="margin-top:12px">${Object.values(TRANSLATIONS).map((t) => `<button class="itemlink" data-tr="${t.id}" aria-pressed="${t.id === tr()}"><span class="grow"><b>${t.name} (${t.short})</b><span>${esc(t.notice)}</span></span>${t.id === tr() ? icon('check') : ''}</button>`).join('')}</div>
     <p class="small faint" style="margin-top:12px">These translations are in the public domain, so they can be stored on your phone, searched and shared freely.</p>`, { label: 'Choose a translation', onOpen: (s) => $$('[data-tr]', s).forEach((b) => b.onclick = () => { store.set('nc.tr', b.dataset.tr); closeSheet(); go(location.hash); }) });
   $('#disp', root).onclick = displaySheet;
+  $('#listen', root).onclick = () => { const a = audioState(); if (a.item && a.item.b === w.b && a.item.c === w.c) { audioToggle(); } else { listen([{ b: w.b, c: w.c }], { onDone: offerMarkRead }); if (!localStorage.getItem('nc.listen')) setTimeout(audioSheet, 400); } };
+  if (offListen) offListen(); offListen = onListen(() => { const b = document.getElementById('listen'); if (!b) return; const on = isPlaying(w.b, w.c); b.innerHTML = icon(on ? 'pause' : 'listen'); b.setAttribute('aria-pressed', on); b.setAttribute('aria-label', on ? 'Pause listening' : `Listen to ${bookName(w.b)} ${w.c}`); });
   $$('.verse', root).forEach((el) => { el.onclick = () => toggleVerse(el); el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleVerse(el); } }; });
   const mr = $('#markRead', root);
   if (mr) mr.onclick = async () => { if (mr.dataset.busy) return; mr.dataset.busy = 1; const key = `${w.b}.${w.c}`, on = !keyRead(key);

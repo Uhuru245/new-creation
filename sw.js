@@ -1,8 +1,8 @@
 // New Creation service worker: fast start, offline reading, safe updates.
-const VERSION = 'nc-2026-10-04-1';
+const VERSION = 'nc-2026-10-04-2';
 const SHELL = ['./', 'index.html', 'config.js', 'css/app.css', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png',
-  'js/app.js', 'js/util.js', 'js/api.js', 'js/bible.js', 'js/state.js', 'js/morph.js',
-  'js/views/today.js', 'js/views/bible.js', 'js/views/original.js', 'js/views/circle.js', 'js/views/journey.js', 'js/views/me.js', 'js/views/leader.js', 'js/views/privacy.js', 'js/views/auth.js',
+  'js/app.js', 'js/util.js', 'js/api.js', 'js/bible.js', 'js/state.js', 'js/morph.js', 'js/audio.js',
+  'js/views/today.js', 'js/views/bible.js', 'js/views/original.js', 'js/views/circle.js', 'js/views/journey.js', 'js/views/me.js', 'js/views/leader.js', 'js/views/privacy.js', 'js/views/auth.js', 'js/views/listen-help.js',
   'data/meta.json', 'data/plans.json'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith('nc-') && k !== VERSION && k !== 'nc-data-v1' && k !== 'nc-fonts').map((k) => caches.delete(k)))).then(() => self.clients.claim())); });

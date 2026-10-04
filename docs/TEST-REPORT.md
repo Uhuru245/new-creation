@@ -66,3 +66,26 @@ Live API calls: median **2.3 s**, 90th percentile 3.5 s, slowest 5.4 s (48 calls
 - **Screen readers.** Checked automatically with axe and with keyboard focus order; not yet tried with VoiceOver or TalkBack.
 - **Hebrew and Greek fonts on older Android phones** (they load from Google Fonts).
 - **POPIA.** The privacy notice is a draft for your review, ideally with someone who knows POPIA.
+
+## Published site check (2026-10-04)
+
+Address: https://uhuru245.github.io/new-creation/ (GitHub Pages, repository Uhuru245/new-creation)
+
+| Check | Result |
+|---|---|
+| Browser journeys and accessibility, sample data (`?demo=1`) | 80 passed, 0 failed |
+| Sign-in and Leader tools against the live server's TEST data (`?env=test`) | Passed, no errors |
+| Service worker active, install manifest found, 4 icons | Passed |
+
+Timings on the published site: opening screen 0.57 s; returning member sees Today 0.08 s; first sign-in 6.9 s (Apps Script round trips); chapter opens 0.21 s.
+
+## Listen feature (2026-10-04)
+
+| Check | Result |
+|---|---|
+| All 3 × 1,189 narrated chapter files exist at the expected addresses | Passed (0 missing) |
+| Player: start, narrator switch, pause, next chapter, stop, Today's reading queue | 11 passed |
+| Accessibility with the player and listening options open (axe, serious/critical) | Passed |
+| Full browser journey suite after the change | 80 passed, 0 failed |
+
+Bug found and fixed while testing: when fresh data arrived from the server while a member was opening another page from Today, the app could jump back to Today. It now only refreshes the page that is showing.

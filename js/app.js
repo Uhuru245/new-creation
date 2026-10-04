@@ -62,6 +62,7 @@ onChange((why) => {
   paintSync(); if (why !== 'server' || !current) return;
   const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return; // never re-render under someone's typing
   if ($('#sheet')) return;
+  if (parseRoute().name !== current.name) return; // a newer page is already loading
   if (current.mod.onData) current.mod.onData(why); else render();
 });
 
