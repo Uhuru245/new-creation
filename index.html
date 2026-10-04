@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>New Creation</title>
+<meta name="description" content="Read the Bible together: daily plans, Scripture, original languages and a praying circle.">
+<meta name="theme-color" content="#1F4D3A">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="New Creation">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="css/app.css">
+<script>
+  // Apply the saved theme before first paint (no flash).
+  (function(){ try{ var t=localStorage.getItem('nc.theme')||'auto'; if(t==='auto') t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'; document.documentElement.dataset.theme=t;
+    var s=localStorage.getItem('nc.size'); if(s) document.documentElement.style.setProperty('--read-size',s+'px');
+    var l=localStorage.getItem('nc.lh'); if(l) document.documentElement.style.setProperty('--read-lh',l); }catch(e){} })();
+</script>
+<script src="config.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div id="root">
+  <div class="boot" role="status" aria-label="New Creation is opening">
+    <div>
+      <svg class="emblem" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="b0c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2C664E"/><stop offset="1" stop-color="#143526"/></linearGradient><linearGradient id="b0g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6DE9C"/><stop offset=".55" stop-color="#C9A04A"/><stop offset="1" stop-color="#8E6A24"/></linearGradient></defs><path d="M14 9.2h21.6a2.6 2.6 0 0 1 2.6 2.6v26.4a1.8 1.8 0 0 1-1.8 1.8H14Z" fill="#F7F0DE"/><path d="M36 13v25M37.2 13v25" stroke="#D8C9A6" stroke-width=".4"/><path d="M30.6 38.6v7l1.9-1.7 1.9 1.7v-7Z" fill="#A61E2A"/><rect x="8.6" y="5.8" width="27.6" height="34.4" rx="3.2" fill="url(#b0c)"/><rect x="8.6" y="5.8" width="5" height="34.4" rx="2.4" fill="#000" opacity=".25"/><rect x="16.2" y="9.4" width="16.8" height="27.2" rx="1.6" fill="none" stroke="url(#b0g)" stroke-width=".7" opacity=".9"/><path d="M23.4 13.2h2.6v5.4h4.4v2.6H26v10.6h-2.6V21.2H19v-2.6h4.4Z" fill="url(#b0g)"/></svg>
+      <p>New Creation</p>
+    </div>
+  </div>
+</div>
+<noscript><p style="padding:24px;font-family:sans-serif">New Creation needs JavaScript to run.</p></noscript>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
