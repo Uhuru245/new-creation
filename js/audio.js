@@ -4,6 +4,7 @@
 // Nothing is generated: the narrators read the published BSB text, and the device voice reads the text on screen word for word.
 import { $, $$, esc, icon, toast, sheet, closeSheet, store } from './util.js';
 import { META, TRANSLATIONS, loadChapter, bookName, chapterCount } from './bible.js';
+import * as pad from './pad.js';
 
 const AB = ['Gen', 'Exo', 'Lev', 'Num', 'Deu', 'Jos', 'Jdg', 'Rut', '1Sa', '2Sa', '1Ki', '2Ki', '1Ch', '2Ch', 'Ezr', 'Neh', 'Est', 'Job', 'Psa', 'Pro', 'Ecc', 'Sng', 'Isa', 'Jer', 'Lam', 'Ezk', 'Dan', 'Hos', 'Jol', 'Amo', 'Oba', 'Jon', 'Mic', 'Nam', 'Hab', 'Zep', 'Hag', 'Zec', 'Mal', 'Mat', 'Mrk', 'Luk', 'Jhn', 'Act', 'Rom', '1Co', '2Co', 'Gal', 'Eph', 'Php', 'Col', '1Th', '2Th', '1Ti', '2Ti', 'Tts', 'Phm', 'Heb', 'Jas', '1Pe', '2Pe', '1Jn', '2Jn', '3Jn', 'Jud', 'Rev'];
 export const NARRATORS = {
@@ -13,10 +14,10 @@ export const NARRATORS = {
   device: { name: 'Phone voice', desc: 'Reads the translation on screen, also offline. Less natural.', device: true },
 };
 export const RATES = [0.75, 0.9, 1, 1.15, 1.3, 1.5];
-const SRC_NOTE = 'Berean Standard Bible audio by Bob Souer, Barry Hays and Jordan Gilbert, public domain (CC0), via openbible.com.';
+const SRC_NOTE = 'Berean Standard Bible audio by Bob Souer, Barry Hays and Jordan Gilbert, public domain (CC0), via openbible.com. The verse highlight is timed from the pauses in each recording, so it can be a moment early or late. The worship music is generated on your phone.';
 
 export const audioUrl = (narr, b, c) => { const n = NARRATORS[narr], i = META.codes.indexOf(b); return `https://openbible.com/audio/${n.dir}/BSB_${String(i + 1).padStart(2, '0')}_${AB[i]}_${String(c).padStart(3, '0')}${n.suf}.mp3`; };
-const prefs = () => ({ narr: 'souer', rate: 1, cont: true, ...store.json('nc.listen', {}) });
+const prefs = () => ({ narr: 'souer', rate: 1, cont: true, pad: true, padLevel: 0.5, follow: true, ...store.json('nc.listen', {}) });
 const savePrefs = (p) => store.setJson('nc.listen', { ...prefs(), ...p });
 
 const P = { queue: [], i: 0, playing: false, el: null, utter: null, verse: 0, verses: null, onEnd: null, started: false };
@@ -24,16 +25,45 @@ const cur = () => P.queue[P.i];
 const label = (it) => it ? `${bookName(it.b)} ${it.c}` : '';
 const listeners = new Set();
 export const onListen = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
-const emit = () => { paint(); listeners.forEach((f) => f(state())); };
+const emit = () => { paint(); syncPad(); listeners.forEach((f) => f(state())); };
+function syncPad() { const pr = prefs(); if (P.playing && cur() && pr.pad) { pad.setLevel(pr.padLevel); pad.start(); } else pad.stop(!cur()); }
+
+// ---------- follow along: verse start times for each narrated chapter ----------
+// Worked out ahead of time from the pauses in each recording (see tools/timing); verse 0 is the spoken chapter title.
+const TIMES = {};
+async function timesFor(narr, b) {
+  const k = narr + '/' + b; if (TIMES[k] !== undefined) return TIMES[k];
+  try { const r = await fetch(`data/timing/${narr}/${b}.json`); TIMES[k] = r.ok ? await r.json() : null; } catch (e) { TIMES[k] = null; }
+  return TIMES[k];
+}
+function verseAt(t, starts) { let v = 0; for (let i = 1; i < starts.length; i++) { if (t + 0.15 >= starts[i]) v = i; else break; } return v; }
+function followTime() {
+  const it = cur(), pr = prefs(); if (!it || !P.el || NARRATORS[pr.narr].device) return;
+  const tb = TIMES[pr.narr + '/' + it.b]; const st = tb && tb[it.c - 1]; if (!st) return;
+  markVerse(verseAt(P.el.currentTime, st));
+}
+// Open the chapter being read in the Bible tab, so the text follows the voice (only from Today or the Bible tab, never mid-task elsewhere).
+function followPage(it) {
+  if (!prefs().follow) return; const h = location.hash || '#/today';
+  if (!/^#\/(bible|today)?($|[\/?])/.test(h) && h !== '#/') return;
+  const want = `#/bible/${it.b}/${it.c}`; if (!h.startsWith(want)) location.hash = want;
+}
+// Start from a given verse (used by "Listen from here").
+export async function listenFrom(b, c, v, opts = {}) {
+  const narr = prefs().narr;
+  if (NARRATORS[narr].device) { await listen([{ b, c }], opts); if (v > 1 && P.verses) speakFrom(v - 1); return; }
+  const tb = await timesFor(narr, b); const st = tb && tb[c - 1];
+  await listen([{ b, c }], { ...opts, startAt: st && st[v] ? Math.max(0, st[v] - 0.2) : 0 });
+}
 export const state = () => ({ active: !!cur(), playing: P.playing, item: cur(), narr: prefs().narr });
 export const isPlaying = (b, c) => { const it = cur(); return !!(it && P.playing && it.b === b && it.c === c); };
 
 // ---------- public controls ----------
 // Start listening to one chapter, or to a list of chapters (e.g. today's reading). `onDone(item)` runs when a chapter finishes.
-export async function listen(items, { onDone = null, at = 0 } = {}) {
+export async function listen(items, { onDone = null, at = 0, startAt = 0 } = {}) {
   stopEngines();
   P.queue = items.map((x) => ({ b: x.b, c: Number(x.c) })); P.i = Math.max(0, Math.min(at, P.queue.length - 1)); P.onEnd = onDone; P.started = true;
-  await playCurrent();
+  await playCurrent(startAt);
 }
 export function toggle() { if (!cur()) return; if (P.playing) pause(); else resume(); }
 export function pause() {
@@ -65,13 +95,14 @@ function stopEngines() {
 }
 async function playCurrent(startAt = 0) {
   const it = cur(); if (!it) return stop();
-  const pr = prefs(); P.playing = true; emit(); media(it);
+  const pr = prefs(); P.playing = true; P.shown = -1; emit(); media(it); followPage(it);
   if (NARRATORS[pr.narr].device) return speakChapter(it);
+  timesFor(pr.narr, it.b);
   if (!P.el) {
-    P.el = new Audio(); P.el.preload = 'auto';
+    P.el = new Audio(); P.el.preload = 'auto'; window.__ncAudio = P.el;
     P.el.addEventListener('ended', () => chapterDone());
     P.el.addEventListener('error', () => { if (P.el.getAttribute('src')) failed(); });
-    P.el.addEventListener('timeupdate', paintTime);
+    P.el.addEventListener('timeupdate', () => { paintTime(); followTime(); });
     P.el.addEventListener('pause', () => { if (P.playing && !P.el.ended) { P.playing = false; emit(); } });
     P.el.addEventListener('play', () => { P.playing = true; emit(); });
   }
@@ -133,11 +164,16 @@ function speakFrom(v, announce = false) {
   P.playing = true; emit();
   if (announce && v === 0) say(`${bookName(it.b)}, chapter ${it.c}.`, 700, () => step(0)); else step(v);
 }
-function markVerse(v) {
+function markVerse(v, force = false) {
+  const it = cur(); const here = !!(v && it && location.hash.startsWith(`#/bible/${it.b}/${it.c}`));
+  const el = here ? $('#v' + v) : null;
+  if (!force && el && el.classList.contains('speaking')) return; // same verse still being read
   $$('.verse.speaking').forEach((e) => e.classList.remove('speaking'));
-  const it = cur(); if (!v || !it || !location.hash.startsWith(`#/bible/${it.b}/${it.c}`)) return;
-  const el = $('#v' + v); if (el) { el.classList.add('speaking'); if (store.get('nc.follow', '1') === '1') el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  if (!el) return; el.classList.add('speaking');
+  // Keep the verse in view unless the reader has scrolled away on purpose in the last few seconds.
+  if (prefs().follow && Date.now() - (window.__ncUserScroll || 0) > 4000) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
+['wheel', 'touchmove'].forEach((ev) => addEventListener(ev, () => { window.__ncUserScroll = Date.now(); }, { passive: true }));
 
 // Lock-screen and headphone controls.
 function media(it) {
@@ -188,7 +224,10 @@ export function openSheet() {
     ${t !== 'bsb' && !NARRATORS[pr.narr].device ? `<p class="small muted" style="margin-top:8px">The narrators read the Berean Standard Bible, so some words will differ from the ${esc(TRANSLATIONS[t].short)} text on screen.</p>` : ''}
     <p class="eyebrow" style="margin-top:16px">Speed</p>
     <div class="seg" role="group" aria-label="Speed">${RATES.map((r) => `<button data-rate="${r}" aria-pressed="${r === pr.rate}">${r}×</button>`).join('')}</div>
-    <label class="switch" style="margin-top:14px"><input type="checkbox" id="lsCont" ${pr.cont ? 'checked' : ''}><span>Keep playing the next chapter</span></label>
+    <label class="switch" style="margin-top:14px"><input type="checkbox" id="lsFollow" ${pr.follow ? 'checked' : ''}><span>Follow along in the Bible (highlights the verse being read)</span></label>
+    <label class="switch"><input type="checkbox" id="lsPad" ${pr.pad ? 'checked' : ''}><span>Worship music underneath</span></label>
+    <label class="field" id="padLvlRow" ${pr.pad ? '' : 'hidden'}>Music volume<input type="range" id="lsPadLvl" min="0.15" max="1" step="0.05" value="${pr.padLevel}" aria-label="Worship music volume"></label>
+    <label class="switch"><input type="checkbox" id="lsCont" ${pr.cont ? 'checked' : ''}><span>Keep playing the next chapter</span></label>
     <p class="attrib" style="margin-top:14px">${esc(SRC_NOTE)}</p>`, { label: 'Listening options' });
   const on = (id, f) => { const e = $(id, s); if (e) e.onclick = f; };
   on('#lsClose', closeSheet); on('#lsPrev', prevChapter); on('#lsNext', nextChapter); on('#lsBack', () => skip(-15)); on('#lsFwd', () => skip(15));
@@ -196,6 +235,9 @@ export function openSheet() {
   $$('[data-narr]', s).forEach((b) => b.onclick = () => { setNarrator(b.dataset.narr); closeSheet(); openSheet(); });
   $$('[data-rate]', s).forEach((b) => b.onclick = () => { setRate(Number(b.dataset.rate)); $$('[data-rate]', s).forEach((x) => x.setAttribute('aria-pressed', x === b)); });
   $('#lsCont', s).onchange = (e) => savePrefs({ cont: e.target.checked });
+  $('#lsFollow', s).onchange = (e) => { savePrefs({ follow: e.target.checked }); if (e.target.checked && cur()) { followPage(cur()); P.shown = -1; } };
+  $('#lsPad', s).onchange = (e) => { savePrefs({ pad: e.target.checked }); $('#padLvlRow', s).hidden = !e.target.checked; syncPad(); };
+  $('#lsPadLvl', s).oninput = (e) => { savePrefs({ padLevel: Number(e.target.value) }); pad.setLevel(Number(e.target.value)); };
 }
 // Keep the verse highlight in step when the reader re-renders the chapter being spoken.
 window.addEventListener('hashchange', () => setTimeout(() => { if (NARRATORS[prefs().narr].device && P.playing) markVerse(P.verse + 1); }, 120));

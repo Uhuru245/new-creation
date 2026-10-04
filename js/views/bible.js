@@ -3,7 +3,7 @@ import { $, $$, esc, icon, toast, sheet, closeSheet, store, copyText, shareText,
 import { S, setRead, keyRead, privItem, setPriv } from '../state.js';
 import { META, TRANSLATIONS, loadChapter, bookName, chapterCount, isNT, parseRef, refLabel, search } from '../bible.js';
 import { go } from '../app.js';
-import { listen, onListen, isPlaying, toggle as audioToggle, state as audioState, openSheet as audioSheet } from '../audio.js';
+import { listen, listenFrom, onListen, isPlaying, toggle as audioToggle, state as audioState, openSheet as audioSheet } from '../audio.js';
 import { offerMarkRead } from './listen-help.js';
 
 export const title = (r) => (r.parts[0] ? `${bookName(r.parts[0]) || 'Bible'} ${r.parts[1] || ''}` : 'Bible');
@@ -95,6 +95,7 @@ function verseSheet() {
     <div class="sheet-actions">
       <button class="btn" id="aBm" aria-pressed="${!!bm}">${icon('bookmark')}${bm ? 'Bookmarked' : 'Bookmark'}</button>
       <button class="btn" id="aNote">${icon('note')}${nt ? 'Edit note' : 'Private note'}</button>
+      <button class="btn" id="aListen">${icon('listen')}Listen from here</button>
       <button class="btn" id="aCopy">${icon('copy')}Copy</button>
       <button class="btn" id="aShare">${icon('share')}Share</button>
       <a class="btn" id="aWa" href="#" target="_blank" rel="noopener">${icon('chat')}WhatsApp</a>
@@ -105,6 +106,7 @@ function verseSheet() {
   $$('[data-hl]', s).forEach((b) => b.onclick = async () => { const c = b.dataset.hl; vs.forEach((v) => setPriv('highlight', `${cur.b}.${cur.c}.${v}`, c ? { color: c } : null)); closeSheet(); clearSel(); go(location.hash); toast(c ? 'Highlighted.' : 'Highlight removed.'); });
   $('#aBm', s).onclick = () => { setPriv('bookmark', k, bm ? null : { label, at: new Date().toISOString() }); closeSheet(); clearSel(); go(location.hash); toast(bm ? 'Bookmark removed.' : 'Bookmarked. Find it under Me.'); };
   $('#aNote', s).onclick = () => noteSheet(k, label);
+  $('#aListen', s).onclick = () => { const v = vs[0]; closeSheet(); clearSel(); listenFrom(cur.b, cur.c, v, { onDone: offerMarkRead }); };
   $('#aCopy', s).onclick = async () => { await copyText(await selText()); closeSheet(); clearSel(); };
   $('#aShare', s).onclick = async () => { await shareText(await selText(), label); closeSheet(); clearSel(); };
 }

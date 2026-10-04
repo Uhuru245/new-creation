@@ -103,3 +103,17 @@ www.mret.co.za is now a home page (separate repository Uhuru245/Uhuru245.github.
 | Service worker scope is /new-creation/ | Passed |
 
 Bug found and fixed: signing out waited for the server before clearing the phone, and a slow answer arriving afterwards could save the Circle cache again. The app now clears the phone first, then tells the server, and ignores answers that arrive after sign-out.
+
+## Follow-along highlighting and worship music (2026-10-04)
+
+- Verse timings for all 1,189 chapters for each narrator were worked out from the pauses in each recording (tools/timing). They are approximate.
+- Checked against a speech-recognition transcript of four chapters:
+
+| Narrator, chapter | Verses within 1 second | Largest miss |
+|---|---|---|
+| Bob Souer, Genesis 1 | 31 of 31 | 0.9 s |
+| Bob Souer, John 3 | 34 of 36 | 2.2 s |
+| Barry Hays, Genesis 1 | 30 of 31 | 2.2 s |
+| Jordan Gilbert, Romans 8 | 33 of 39 | 3.4 s |
+
+- Browser checks: verse highlight follows playback, "Listen from here" starts at the chosen verse, worship music starts and stops with the narration, listening from Today opens the chapter, listening options pass accessibility checks (7 passed). Full journey suite 80 passed; audio suite 13 passed.
