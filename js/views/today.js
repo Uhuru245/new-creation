@@ -6,6 +6,8 @@ import { parseRef, bookName, readLabel } from '../bible.js';
 import { go } from '../app.js';
 import { listen } from '../audio.js';
 import { offerMarkRead } from './listen-help.js';
+import * as BOT from '../backontrack.js';
+import { sheet, closeSheet } from '../util.js';
 
 export const title = 'Today';
 // The GOSPEL discussion framework used since the first version of the app:
@@ -49,7 +51,44 @@ function bookIntros(keys) {
   return out;
 }
 
+// ---------- Back on track ----------
+function botCard() {
+  const st = BOT.status();
+  if (st.kind === 'none') return '';
+  if (st.kind === 'offer') return `<section class="card bot" aria-labelledby="botT"><p class="eyebrow">Back on track</p>
+    <h3 id="botT">${st.missed === 1 ? '1 chapter' : `${st.missed} chapters`} to catch up</h3>
+    <p class="muted">Life happens. There's no guilt here: pick a pace that suits you and we'll spread the missed chapters over the next few days, a few extra at a time.</p>
+    <button class="btn primary" id="botStart">${icon('calendar')} Make my back-on-track plan</button></section>`;
+  if (st.kind === 'done') return `<section class="card bot done" aria-labelledby="botT"><p class="eyebrow">Back on track</p>
+    <h3 id="botT">You're back on track.</h3><p class="muted">You caught up on all ${st.total} chapters. Well done for pressing on.</p>
+    <button class="btn" id="botClear">${icon('check')} Close the plan</button></section>`;
+  if (st.kind === 'expired') return `<section class="card bot" aria-labelledby="botT"><p class="eyebrow">Back on track</p>
+    <h3 id="botT">Your plan has ended, with ${st.missed === 1 ? '1 chapter' : `${st.missed} chapters`} still to read</h3>
+    <p class="muted">You caught up on ${st.caught} of ${st.total}. That's real progress. Choose a new pace for the rest.</p>
+    <div class="btns"><button class="btn primary" id="botStart">${icon('calendar')} Make a new plan</button><button class="btn" id="botClear">Stop the plan</button></div></section>`;
+  const pct = Math.round(st.caught / st.total * 100); const left = st.keys.length - st.doneToday;
+  return `<section class="card bot" aria-labelledby="botT"><div class="card-head"><p class="eyebrow">Back on track · day ${st.dayNo} of ${st.plan.days}</p><button class="link" id="botChange">Change</button></div>
+    <h3 id="botT">${left > 0 ? `Today's catch-up: ${left === 1 ? '1 chapter' : `${left} chapters`}` : "Today's catch-up is done"}</h3>
+    <p class="muted small">${left > 0 ? `About ${BOT.minutesFor(st.keys.filter((k) => !keyRead(k)))} minutes, on top of today's reading.` : `${st.missed} to go, finishing by ${fmtDate(st.plan.until, { weekday: 'long', day: 'numeric', month: 'long' })}.`}</p>
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Caught up ${st.caught} of ${st.total} chapters"><span style="width:${pct}%"></span></div>
+    <p class="faint small">Caught up ${st.caught} of ${st.total}</p>
+    <div class="chlist">${st.keys.map((k) => chapterRow(k, false)).join('')}</div>
+    ${left > 0 ? `<button class="btn block listen-btn" id="botListen">${icon('listen')} Listen to the catch-up chapters</button>` : ''}</section>`;
+}
+async function botSheet() {
+  await BOT.loadDurations(); const opts = BOT.options(); const n = BOT.missedKeys().length;
+  const s = sheet(`<div class="card-head"><h3>Your back-on-track plan</h3><button class="icon-btn" id="bsClose" aria-label="Close">${icon('close')}</button></div>
+    <p class="muted">You have ${n === 1 ? '1 chapter' : `${n} chapters`} to catch up (about ${BOT.minutesFor(BOT.missedKeys())} minutes in all). How quickly would you like to catch up? Keep reading today's chapters as normal; these come on top.</p>
+    <div class="stack-sm" style="margin-top:12px" role="group" aria-label="Choose a pace">${opts.map((o, i) => `<button class="itemlink" data-opt="${i}"><span class="grow"><b>${esc(o.label)}${o.recommended ? ' <span class="pill ok">Suggested</span>' : ''}</b><span>${o.per} extra chapter${o.per === 1 ? '' : 's'} a day · about ${o.minutes} min${o.heavy ? ' · a big push' : ''}</span></span>${icon('next')}</button>`).join('')}</div>
+    <p class="faint small" style="margin-top:12px">Only you can see this plan. Your leader still sees your usual progress, not the plan. You can change or stop it at any time.</p>
+    ${BOT.plan() ? '<button class="btn danger" id="bsStop" style="margin-top:8px">Stop my plan</button>' : ''}`, { label: 'Back-on-track plan' });
+  $('#bsClose', s).onclick = closeSheet;
+  $$('[data-opt]', s).forEach((b) => b.onclick = async () => { const o = opts[Number(b.dataset.opt)]; closeSheet(); await BOT.start(o); toast(`Plan set: about ${o.per} extra a day until ${fmtDate(o.until, { weekday: 'long', day: 'numeric', month: 'long' })}.`); go('#/today'); });
+  const stop = $('#bsStop', s); if (stop) stop.onclick = async () => { closeSheet(); await BOT.cancel(); toast('Plan stopped. Every chapter you read still counts.'); go('#/today'); };
+}
+
 export async function render() {
+  await BOT.loadDurations();
   const d = S.data, p = S.plan, c = counts(), D = c.day, t = c.t, first = d.me.name.split(' ')[0];
   const h = hourJHB(); const hi = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
   const pre = t === 0, post = t > p.days.length;
@@ -72,10 +111,11 @@ export async function render() {
     <button class="btn on-hero block listen-btn" id="listenToday">${icon('listen')} Listen to today's reading</button>
     ${nextKey ? `<a class="btn on-hero block" href="#/bible/${nextKey.replace('.', '/')}">${icon('bible')} Continue reading: ${esc(bookName(nextKey.split('.')[0]))} ${nextKey.split('.')[1]}</a>` : `<a class="btn on-hero block" href="#/circle?compose=reflection&day=${D.n}">${icon('chat')} Share what God showed you</a>`}
   </section>`}
+  ${botCard()}
   <section class="card" aria-labelledby="progT"><div class="card-head"><h3 id="progT">Your progress</h3><span class="pill ok">${pct}% of the plan</span></div>
     <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Overall challenge progress"><span style="width:${pct}%"></span></div>
     <div class="stats"><div class="stat"><b>${c.todayDone}/${keys.length}</b><span>today</span></div><div class="stat"><b>${c.total}</b><span>chapters read</span></div><div class="stat"><b>${c.expectedDone}/${c.expected}</b><span>since you joined</span></div></div>
-    ${c.catchUp > 0 ? `<p class="small muted">${c.startDay > 1 ? `You joined on day ${c.startDay}. ` : ''}There ${c.catchUp === 1 ? 'is 1 earlier chapter' : `are ${c.catchUp} earlier chapters`} you can read whenever you're ready. Every chapter you read counts.</p>` : t > 1 ? '<p class="small muted">You are reading right along with the circle.</p>' : ''}
+    ${c.catchUp > 0 ? `<p class="small muted">${c.startDay > 1 ? `You joined on day ${c.startDay}. ` : ''}There ${c.catchUp === 1 ? 'is 1 earlier chapter' : `are ${c.catchUp} earlier chapters`} to catch up${BOT.plan() ? ', and your back-on-track plan above spreads them out for you' : '. The back-on-track plan above can spread them out for you'}. Every chapter you read counts.</p>` : t > 1 ? '<p class="small muted">You are reading right along with the circle.</p>' : ''}
     ${c.startDay > 1 ? `<p class="faint small">Chapters before day ${c.startDay} are optional and never count against you.</p>` : ''}
   </section>
   ${D.deep ? `<section class="card"><p class="eyebrow">Deep study · Day ${D.n}</p><h3 class="serif" style="font-size:20px">${esc(D.deep)}</h3>
@@ -89,6 +129,10 @@ export async function render() {
 }
 
 export function mount(root) {
+  ['#botStart', '#botChange'].forEach((id) => { const b = $(id, root); if (b) b.onclick = botSheet; });
+  const bc = $('#botClear', root); if (bc) bc.onclick = async () => { await BOT.cancel(); go('#/today'); };
+  const bl = $('#botListen', root); if (bl) bl.onclick = () => { const st = BOT.status(); const ks = st.keys.filter((k) => !keyRead(k));
+    listen(ks.map((k) => ({ b: k.split('.')[0], c: Number(k.split('.')[1]) })), { onDone: offerMarkRead }); };
   const lt = $('#listenToday', root);
   if (lt) lt.onclick = () => { const keys = counts().todayKeys; const first = Math.max(0, keys.findIndex((k) => !keyRead(k)));
     listen(keys.map((k) => ({ b: k.split('.')[0], c: Number(k.split('.')[1]) })), { at: first, onDone: offerMarkRead }); };

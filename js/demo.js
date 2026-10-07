@@ -61,7 +61,8 @@ function makeServices(db, save) {
 }
 
 export async function createDemo() {
-  const src = await fetch(new URL('../server/Code.gs', import.meta.url)).then((r) => r.text());
+  // The demo challenge always sits on day 12, so the server's start date moves with today's date.
+  const src = (await fetch(new URL('../server/Code.gs', import.meta.url)).then((r) => r.text())).replace(/const START = '\d{4}-\d{2}-\d{2}';/, `const START = '${addDays(todayISO(), -11)}';`);
   let db = null; try { db = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
   const fresh = !db; if (!db) db = { books: {}, props: {}, cache: {}, outbox: [] };
   db.cache = {};

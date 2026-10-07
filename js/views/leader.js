@@ -21,7 +21,7 @@ export function groupPost() {
 function catchUpMsg(m) {
   const first = m.name.split(' ')[0]; const D = S.plan.days[planDay() - 1];
   if (m.status === 'ok') return `Hi ${first}, just wanted to say I'm glad you're reading with us. Today is ${D.read}. Keep going!`;
-  return `Hi ${first}, thinking of you on our ${S.data.challenge.name} reading. No pressure and no guilt: just pick up with today's chapters (${D.read}) and read earlier ones whenever you can. Every chapter counts.\n${appLink()}`;
+  return `Hi ${first}, thinking of you on our ${S.data.challenge.name} reading. No pressure and no guilt: just pick up with today's chapters (${D.read}). If you'd like to catch up, tap "Make my back-on-track plan" on the Today page and it will spread the missed chapters over a few days. Every chapter counts.\n${appLink()}`;
 }
 
 export async function render() {

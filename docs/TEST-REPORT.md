@@ -117,3 +117,20 @@ Bug found and fixed: signing out waited for the server before clearing the phone
 | Jordan Gilbert, Romans 8 | 33 of 39 | 3.4 s |
 
 - Browser checks: verse highlight follows playback, "Listen from here" starts at the chosen verse, worship music starts and stops with the narration, listening from Today opens the chapter, listening options pass accessibility checks (7 passed). Full journey suite 80 passed; audio suite 13 passed.
+
+## Back-on-track plan (2026-10-07)
+
+For members who have missed chapters since they joined. Chapters before a late joiner's start day stay optional and are never included.
+
+- Today shows "N chapters to catch up" with a button to make a plan.
+- The member picks a pace: in 3, 7 or 14 days, or by the end of the challenge. Each choice shows the extra chapters a day and the minutes (from the narrated recordings). The quickest pace of five or fewer extra chapters a day is marked "Suggested".
+- Each day lists that day's catch-up chapters (fixed for the day), with tick boxes, a progress bar and a "Listen to the catch-up chapters" button. If a day is missed, the remaining chapters are spread over the days left.
+- When everything is caught up, it says "You're back on track." If the end date passes first, it offers a new plan.
+- The plan is private to the member and syncs across their devices. The leader's encouragement message now points to the plan.
+
+| Check | Result |
+|---|---|
+| Back-on-track journey (offer, pace choices, plan, tick, progress, saved privately, caught up, close) and accessibility | 11 passed |
+| Full browser journey suite | 80 passed, 0 failed |
+
+Fixed in the demo: the sample challenge's start date now moves with today's date, so a new demo member starts on the right day.
