@@ -369,7 +369,28 @@ function apiLeader(token, cid) {
   const c = challenge_(cid || MAIN_ID); const rows = progressRows_();
   return readMembers_().map(function(m){ const p = progressOf_(m, c, rows); if (!p) return null; const a = assess_(m, p, c);
     return { id: m.id, name: m.name, phone: m.phone, ch: p.ch, joined: p.joined || m.joined, lastSeen: m.lastSeen, lastReadDate: p.lastReadDate,
-             streak: p.streak, nudged: p.nudged, fresh: p.fresh, status: a.s, label: a.label, behind: a.behind, daysBehind: a.daysBehind, expected: a.expected }; }).filter(Boolean);
+             streak: p.streak, nudged: p.nudged, fresh: p.fresh, email: settingsOf_(m).email || '', status: a.s, label: a.label, behind: a.behind, daysBehind: a.daysBehind, expected: a.expected }; }).filter(Boolean);
+}
+// Personal emails to members who chose to receive them. {first} and {name} become each person's own name.
+function apiMail(token, msg) {
+  const me = byToken_(token); if (!isLeader_(me)) throw new Error('Only the app owner can send emails.');
+  msg = msg || {}; const subject = String(msg.subject || '').trim().slice(0, 150), body = String(msg.body || '').trim().slice(0, 20000);
+  if (!subject || !body) throw new Error('Add a subject and a message.');
+  const ids = Array.isArray(msg.ids) ? msg.ids.map(String) : null;
+  const list = readMembers_().filter(function(m){ return settingsOf_(m).email && (!ids || ids.indexOf(m.id) >= 0); });
+  if (!list.length) throw new Error('No one selected has an email address.');
+  const quota = MailApp.getRemainingDailyQuota();
+  if (list.length > quota) throw new Error('Google allows ' + quota + ' more emails today. Choose fewer people or send the rest tomorrow.');
+  const h = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  const foot = 'You are receiving this because you added your email in the New Creation app. To stop, open the app, tap Me, then Email updates.'; let sent = 0; const failed = [];
+  list.forEach(function(m){
+    const first = String(m.name).split(' ')[0];
+    const fill = function(s){ return s.replace(/\{first\}/gi, first).replace(/\{name\}/gi, m.name); };
+    const html = '<div style="font-family:Georgia,serif;font-size:16px;line-height:1.65;color:#1d2a24">' + h(fill(body)).replace(/\n/g, '<br>') + '</div><p style="font-family:Arial,sans-serif;font-size:12px;color:#888;margin-top:28px">' + foot + '</p>';
+    try { MailApp.sendEmail({ to: settingsOf_(m).email, subject: fill(subject), body: fill(body) + '\n\n--\n' + foot, htmlBody: html, name: 'New Creation' }); sent++; } catch (e) { failed.push(m.name); }
+  });
+  log_(me.name, 'emailed', sent + ' · ' + subject);
+  return { sent: sent, failed: failed, remaining: MailApp.getRemainingDailyQuota() };
 }
 function apiMarkNudged(token, id, cid) {
   return withLock_(function(){
@@ -683,6 +704,10 @@ function apiSettings(token, patch) {
     const me = byToken_(token); const st = settingsOf_(me); patch = patch || {};
     ['hideProgress','emailPrayer'].forEach(function(k){ if (k in patch) st[k] = !!patch[k]; });
     if ('name' in patch) { const n = clean_(patch.name, 40); if (n) me.name = n; }
+    if ('email' in patch) { const e = String(patch.email || '').trim().toLowerCase().slice(0, 120);
+      if (e && !/^[^\s@,;<>]+@[^\s@,;<>]+\.[a-z]{2,}$/.test(e)) throw new Error('That email address does not look right. Please check it.');
+      if (e) { st.email = e; st.emailAt = new Date().toISOString(); delete st.emailAsk; } else { delete st.email; delete st.emailAt; st.emailAsk = 'no'; } }
+    if ('emailAsk' in patch) { if (patch.emailAsk === 'no') st.emailAsk = 'no'; else delete st.emailAsk; }
     me.settings = st; writeMember_(me); return { settings: st, name: me.name };
   });
 }
@@ -753,7 +778,7 @@ function apiMap_() { return {
   posts: apiPosts, post: apiPost2, pray: apiPray2, deletePost: apiDeletePost2, cheer: apiCheer,
   private: apiPrivate, privateSet: apiPrivateSet, settings: apiSettings, setPin: apiSetPin, signOut: apiSignOut,
   exportMe: apiExport, deleteAccount: apiDeleteAccount,
-  leader: apiLeader, markNudged: apiMarkNudged, remove: apiRemove, resetPin: apiResetPin, approve: apiApprove,
+  leader: apiLeader, mail: apiMail, markNudged: apiMarkNudged, remove: apiRemove, resetPin: apiResetPin, approve: apiApprove,
   challenges: apiChallenges, createChallenge: apiCreateChallenge, updateChallenge: apiUpdateChallenge, cancelChallenge: apiCancelChallenge, planPreview: apiPlanPreview,
   testSetDate: apiTestSetDate
 }; }
