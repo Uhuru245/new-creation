@@ -41,14 +41,14 @@ const CSS = `<style id="teachCss">
 
 let pk = 'lifegroup';
 function promptCard() {
-  const P = PROMPTS[pk]; const d = store.pget('teachDraft_' + pk, null) || (pk === 'lifegroup' ? store.pget('teachDraft', {}) : {}) || {};
+  const P = PROMPTS[pk]; const d = store.pget('teachDraft_v2_' + pk, null) || {};
   const field = (f) => f.type === 'select'
-    ? `<label class="field">${esc(f.label)}<select class="input" data-f="${f.id}">${f.options.map((o) => `<option ${d[f.id] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`
-    : f.rows ? `<label class="field">${esc(f.label)}<textarea class="input" data-f="${f.id}" rows="${f.rows}" placeholder="${esc(f.placeholder || '')}">${esc(d[f.id] || '')}</textarea></label>`
-      : `<label class="field">${esc(f.label)}<input class="input" data-f="${f.id}" placeholder="${esc(f.placeholder || '')}" value="${esc(d[f.id] || '')}"></label>`;
+    ? `<label class="field">${esc(f.label)}<select class="input" data-f="${f.id}">${f.options.map((o) => `<option ${(d[f.id] || f.def) === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`
+    : f.rows ? `<label class="field">${esc(f.label)}<textarea class="input" data-f="${f.id}" rows="${f.rows}" placeholder="${esc(f.placeholder || '')}">${esc(d[f.id] || f.def || '')}</textarea></label>`
+      : `<label class="field">${esc(f.label)}<input class="input" data-f="${f.id}" placeholder="${esc(f.placeholder || '')}" value="${esc(d[f.id] || f.def || '')}"></label>`;
   return `<section class="card" id="pcard"><div class="card-head"><h3>Master prompts</h3><span class="pill">${Object.keys(PROMPTS).length}</span></div>
     <div class="seg" role="group" aria-label="Choose a master prompt" style="margin-top:6px">${Object.entries(PROMPTS).map(([k, x]) => `<button type="button" data-pk="${k}" aria-pressed="${k === pk}">${esc(x.name)}</button>`).join('')}</div>
-    <p class="small muted" style="margin-top:10px"><b>${esc(P.title)}.</b> ${esc(P.blurb)} Fill in your request, copy the full prompt, and paste it into Claude.</p>
+    <p class="small muted" style="margin-top:10px"><b>${esc(P.title)}.</b> ${esc(P.blurb)} Bring the verse or question; your group context, flow and translation are already filled in. Copy the full prompt and paste it into Claude.</p>
     <form class="stack" id="pf" style="margin-top:10px" novalidate>${P.fields.map(field).join('')}
       <div class="btns"><button class="btn primary" type="button" id="pCopy">${icon('copy')} Copy full prompt</button><a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">${icon('link')} Open Claude</a><button class="btn" type="button" id="pClear">Clear</button></div>
       <p class="small faint" id="pInfo">Your request is kept on this device until you clear it.</p></form></section>`;
@@ -56,9 +56,9 @@ function promptCard() {
 function mountPrompt(root) {
   const pf = $('#pf', root); if (!pf) return;
   const vals = () => Object.fromEntries($$('[data-f]', pf).map((e) => [e.dataset.f, e.value]));
-  pf.addEventListener('input', () => store.pset('teachDraft_' + pk, vals()));
+  pf.addEventListener('input', () => store.pset('teachDraft_v2_' + pk, vals()));
   $('#pCopy', pf).onclick = async () => { const v = vals(); if (!(v.topic || '').trim()) { toast('Add a passage, topic or question first.'); $('[data-f="topic"]', pf).focus(); return; } await copyText(PROMPTS[pk].build(v)); $('#pInfo', pf).textContent = 'Copied. Open Claude and paste it into a new chat.'; };
-  $('#pClear', pf).onclick = () => { store.pdel('teachDraft_' + pk); if (pk === 'lifegroup') store.pdel('teachDraft'); $$('[data-f]', pf).forEach((e) => { if (e.tagName !== 'SELECT') e.value = ''; }); toast('Cleared.'); };
+  $('#pClear', pf).onclick = () => { store.pdel('teachDraft_v2_' + pk); $$('[data-f]', pf).forEach((e) => { const f = PROMPTS[pk].fields.find((x) => x.id === e.dataset.f) || {}; e.value = f.def ?? (e.tagName === 'SELECT' ? e.options[0].value : ''); }); toast('Cleared. Your group defaults are back.'); };
   $$('[data-pk]', root).forEach((b) => b.onclick = () => { pk = b.dataset.pk; const card = $('#pcard', root); card.outerHTML = promptCard(); mountPrompt(root); });
 }
 
