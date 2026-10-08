@@ -7,7 +7,7 @@ import { S, signedIn, loadSnapshot, refresh, onChange } from './state.js';
 const VIEWS = {
   today: () => import('./views/today.js'), bible: () => import('./views/bible.js'), original: () => import('./views/original.js'),
   circle: () => import('./views/circle.js'), journey: () => import('./views/journey.js'), me: () => import('./views/me.js'),
-  leader: () => import('./views/leader.js'), privacy: () => import('./views/privacy.js'), auth: () => import('./views/auth.js'),
+  leader: () => import('./views/leader.js'), teach: () => import('./views/teach.js'), privacy: () => import('./views/privacy.js'), auth: () => import('./views/auth.js'),
 };
 const NAV = [['today', 'Today', 'today'], ['bible', 'Bible', 'bible'], ['original', 'Original', 'original'], ['circle', 'Circle', 'circle'], ['journey', 'Journey', 'journey'], ['me', 'Me', 'me']];
 
@@ -42,8 +42,8 @@ export async function render() {
   if (!S.data) { $('#root').innerHTML = `<div class="boot">${emblem()}<p>New Creation</p></div>`; return; }
   if (!$('#main') || !$('.nav') || ($('.nav .lead-only') ? !S.data.me.leader : S.data.me.leader)) { $('#root').innerHTML = shell(); paintSync(); const dr = $('#demoReset'); if (dr) dr.onclick = async (e) => { e.preventDefault(); (await (await import('./demo.js')).createDemo()).reset(); }; }
   let name = r.name; if (!VIEWS[name] || name === 'auth') name = 'today';
-  if (name === 'leader' && !S.data.me.leader) name = 'me';
-  document.querySelectorAll('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.nav === name || (name === 'privacy' && a.dataset.nav === 'me')));
+  if ((name === 'leader' || name === 'teach') && !S.data.me.leader) name = 'me';
+  document.querySelectorAll('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.nav === name || (name === 'privacy' && a.dataset.nav === 'me') || (name === 'teach' && a.dataset.nav === 'leader')));
   document.querySelectorAll('[data-nav]').forEach((a) => { if (a.hasAttribute('aria-current')) a.setAttribute('aria-current', 'page'); });
   const m = await VIEWS[name](); if (seq !== renderSeq) return;
   const main = $('#main'); const same = current && current.name === name;
