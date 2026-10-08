@@ -29,6 +29,7 @@ export async function render() {
   const post = groupPost(); const R = S.data.content && S.data.content.review;
   const t = planDay(); const studies = R && S.data.challenge.plan === 'bible93' ? [t, t + 1].filter((n) => n <= S.plan.days.length) : [];
   return `<div class="stack-sm"><h1>Leader</h1><p class="muted">Only you can see this area. Changes here are checked on the server, not just in the app.</p></div>
+  <a class="card itemlink" href="#/teach" style="padding:16px 18px"><span class="info" style="flex:1"><b>Life Group teaching</b><span class="small muted" style="display:block">Prepared lessons and your master prompt for preparing new ones</span></span>${icon('next')}</a>
   <section class="card"><div class="card-head"><h3>Today's group post</h3><span class="pill">WhatsApp</span></div>
     <textarea class="input" id="gp" rows="9" readonly aria-label="Today's group post">${esc(post)}</textarea>
     <div class="btns"><button class="btn" id="gpCopy">${icon('copy')} Copy post</button><a class="btn primary" href="${esc(waLink(post))}" target="_blank" rel="noopener">${icon('chat')} Share to WhatsApp</a></div>
