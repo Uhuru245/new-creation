@@ -1,6 +1,7 @@
 // Leader only: present a lesson as story slides with hand-drawn illustrations.
 // Slides come from lesson.slides; each may name an illustration from ART.
-import { esc, icon } from '../util.js';
+import { esc, icon, toast } from '../util.js';
+import * as voice from '../preach.js';
 
 // ---------- illustrations (line drawings that draw themselves in) ----------
 // .ln = ink line, .ac = gold accent line, .fs = soft fill, .fa = accent fill. viewBox 0 0 400 260.
@@ -116,6 +117,21 @@ const CSS = `<style id="deckCss">
 .deck .dk-foot{position:absolute;left:20px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);font:600 11px var(--ui);letter-spacing:.2em;text-transform:uppercase;color:rgba(244,239,228,.4)}
 @media (max-width:640px){.deck .dk-foot,.deck .dk-brand{display:none}.deck .dk-b{padding:0 11px}}
 :fullscreen .deck .dk-navs,.deck:fullscreen .dk-navs{opacity:.25;transition:opacity .3s}.deck:fullscreen .dk-navs:hover{opacity:1}
+.deck .dk-cap{max-width:1100px;width:100%;margin:0 auto;padding:6px clamp(16px,4vw,40px) 4px;font:400 clamp(18px,2.1vw,28px)/1.5 var(--serif);color:rgba(244,239,228,.38);text-align:center;min-height:2.2em}
+.deck .dk-cap .w{transition:color .12s ease,background-color .12s ease,text-shadow .12s ease;border-radius:6px;padding:0 .08em}
+.deck .dk-cap .w-done{color:rgba(244,239,228,.9)}
+.deck .dk-cap .w-now{color:#1a1405;background:linear-gradient(180deg,#f3d995,#d8b264);box-shadow:0 0 18px rgba(228,196,126,.55)}
+.deck .dk-cap .strong{font-weight:600;font-style:italic}
+.deck .dk-cap .ln{display:none}.deck .dk-cap .ln.cur{display:inline}
+.deck.preaching .dk-stage{overflow:hidden}
+.deck.preaching h2{font-size:clamp(24px,3.4vw,50px)}.deck.preaching .dk-title h2{font-size:clamp(30px,4.4vw,64px)}
+.deck.preaching .dk-body{font-size:clamp(15px,1.45vw,20px)}
+.deck.preaching .dk-title .dk-figure{width:min(230px,34vw)}.deck.preaching .dk-art{max-height:32vh}
+.deck.preaching .dk-cap{border-top:1px solid rgba(228,196,126,.16);background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.28));padding-block:12px 10px}
+.deck .dk-b.preach[aria-pressed="true"]{background:linear-gradient(180deg,#f0d593,#d2ad5f);color:#1a1405;border:0}
+.deck .dk-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#e25b4b;margin-right:2px;animation:dkPulse 1.2s ease-in-out infinite}
+@keyframes dkPulse{50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.deck .dk-cap .w{transition:none}.deck .dk-live{animation:none}}
 </style>`;
 
 const slideHtml = (s) => {
@@ -127,29 +143,53 @@ const slideHtml = (s) => {
 export function present(lesson, start = 0) {
   const slides = lesson.slides || []; if (!slides.length) return;
   if (!document.getElementById('deckCss')) document.head.insertAdjacentHTML('beforeend', CSS);
-  let i = Math.max(0, Math.min(start, slides.length - 1)), notes = false;
+  let i = Math.max(0, Math.min(start, slides.length - 1)), notes = false, preaching = false, pTimer = null;
   const el = document.createElement('div'); el.className = 'deck'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', `${lesson.title} slides`);
   el.innerHTML = `<div class="dk-bar"><button class="dk-b" data-a="close" aria-label="Close slides">${icon('close')}</button><span class="dk-brand">New Creation</span><span class="dk-count" aria-live="polite"></span><span class="dk-sp"></span>
-    <button class="dk-b" data-a="notes" aria-pressed="false">Notes</button><button class="dk-b" data-a="full" aria-label="Full screen">Full screen</button></div>
-    <div class="dk-prog"></div><div class="dk-stage" tabindex="-1"></div><div class="dk-notes" hidden></div>
+    <button class="dk-b preach" data-a="preach" aria-pressed="false" aria-label="Preach: read each slide aloud as a sermon">${icon('listen')} Preach</button><button class="dk-b" data-a="notes" aria-pressed="false">Notes</button><button class="dk-b" data-a="full" aria-label="Full screen">Full screen</button></div>
+    <div class="dk-prog"></div><div class="dk-stage" tabindex="-1"></div><div class="dk-cap" aria-live="off" hidden></div><div class="dk-notes" hidden></div>
     <div class="dk-navs"><button class="dk-b" data-a="prev" aria-label="Previous slide">${icon('back')}</button><button class="dk-b go" data-a="next" aria-label="Next slide">${icon('next')} Next</button></div><div class="dk-foot"></div>`;
   document.body.appendChild(el); document.documentElement.style.overflow = 'hidden';
-  const stage = el.querySelector('.dk-stage'), notesEl = el.querySelector('.dk-notes');
+  const stage = el.querySelector('.dk-stage'), notesEl = el.querySelector('.dk-notes'), cap = el.querySelector('.dk-cap');
   el.querySelector('.dk-prog').innerHTML = slides.map(() => '<i></i>').join(''); el.querySelector('.dk-foot').textContent = `${lesson.title} · ${lesson.passage}`;
   function show() {
     const s = slides[i]; stage.innerHTML = slideHtml(s); const sl = stage.firstElementChild; const svg = sl.querySelector('svg'); if (svg) draw(svg);
     requestAnimationFrame(() => requestAnimationFrame(() => sl.classList.add('dk-on')));
     el.querySelector('.dk-count').textContent = `${String(i + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`; el.querySelectorAll('.dk-prog i').forEach((d, k) => d.classList.toggle('done', k <= i));
     notesEl.innerHTML = `<b>Leader notes</b>${s.notes || 'No notes for this slide.'}`; notesEl.hidden = !notes;
+    if (preaching) { clearTimeout(pTimer); voice.cancel(); cap.innerHTML = ''; pTimer = setTimeout(preachSlide, 650); }
     el.querySelector('[data-a="prev"]').disabled = i === 0; const nx = el.querySelector('[data-a="next"]'); nx.lastChild.textContent = i === slides.length - 1 ? ' Finish' : ' Next';
   }
   const go = (d) => { if (i + d < 0) return; if (i + d >= slides.length) { close(); return; } i += d; show(); };
-  function close() { document.removeEventListener('keydown', key); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); document.documentElement.style.overflow = ''; el.remove(); }
-  function key(e) { if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(1); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); } else if (e.key === 'Escape' && !document.fullscreenElement) close(); else if (e.key === 'n' || e.key === 'N') toggleNotes(); }
+  function close() { preaching = false; clearTimeout(pTimer); voice.cancel(); document.removeEventListener('keydown', key); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); document.documentElement.style.overflow = ''; el.remove(); }
+  function key(e) { if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(1); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); } else if (e.key === 'Escape' && !document.fullscreenElement) close(); else if (e.key === 'n' || e.key === 'N') toggleNotes(); else if (e.key === 'p' || e.key === 'P') togglePreach(); }
   function toggleNotes() { notes = !notes; notesEl.hidden = !notes; el.querySelector('[data-a="notes"]').setAttribute('aria-pressed', String(notes)); }
   el.addEventListener('click', (e) => { const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a;
-    if (a === 'close') close(); else if (a === 'next') go(1); else if (a === 'prev') go(-1); else if (a === 'notes') toggleNotes();
+    if (a === 'close') close(); else if (a === 'next') go(1); else if (a === 'prev') go(-1); else if (a === 'notes') toggleNotes(); else if (a === 'preach') togglePreach();
     else if (a === 'full') { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else if (el.requestFullscreen) el.requestFullscreen().catch(() => {}); } });
   let x0 = null; stage.addEventListener('pointerdown', (e) => { x0 = e.clientX; }); stage.addEventListener('pointerup', (e) => { if (x0 == null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); });
+  // Preach mode: each slide's sermon lines, spoken with a preacher's rhythm; every word lights up as it is spoken.
+  function linesOf(sl) { return (sl.preach && sl.preach.length ? sl.preach : [sl.title]).map((t) => ({ strong: t.startsWith('**'), lift: t.startsWith('^'), text: t.replace(/^(\*\*|\^)\s*/, '') })); }
+  function preachSlide() {
+    if (!preaching) return; const at = i; const lines = linesOf(slides[i]);
+    cap.hidden = false; cap.innerHTML = lines.map((l, k) => `<span class="ln${l.strong ? ' strong' : ''}" data-k="${k}">${esc(l.text)}</span>`).join(' ');
+    const spans = [...cap.querySelectorAll('.ln')].map((s) => voice.wrapWords(s));
+    const vc = voice.pickVoice(true);
+    const run = (k) => {
+      if (!preaching || at !== i) return;
+      if (k >= lines.length) { pTimer = setTimeout(() => { if (!preaching || at !== i) return; if (i < slides.length - 1) go(1); else { togglePreach(false); toast('Amen. That was the last slide.'); } }, 1300); return; }
+      cap.querySelectorAll('.ln').forEach((n, j) => n.classList.toggle('cur', j === k));
+      voice.speak(lines[k].text, { mode: 'preach', voice: vc, emph: lines[k].strong ? 'strong' : lines[k].lift ? 'lift' : '', onWord: (w) => voice.lightWord(spans[k], w), onDone: () => { voice.lightWord(spans[k], spans[k].length); pTimer = setTimeout(() => run(k + 1), lines[k].strong ? 650 : 380); } });
+    };
+    run(0);
+  }
+  function togglePreach(force) {
+    const on = typeof force === 'boolean' ? force : !preaching;
+    if (on && !voice.supported()) { toast("This device doesn't offer a speaking voice."); return; }
+    preaching = on; el.classList.toggle('preaching', on); el.querySelector('[data-a="preach"]').setAttribute('aria-pressed', String(on));
+    el.querySelector('[data-a="preach"]').innerHTML = on ? '<span class="dk-live" aria-hidden="true"></span> Preaching' : `${icon('listen')} Preach`;
+    clearTimeout(pTimer); voice.cancel();
+    if (on) preachSlide(); else { cap.hidden = true; cap.innerHTML = ''; }
+  }
   document.addEventListener('keydown', key); show(); el.querySelector('[data-a="next"]').focus();
 }

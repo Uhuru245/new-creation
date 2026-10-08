@@ -362,59 +362,140 @@ S('short', '26. Short 20-minute version', `
 <p><b>Prayer:</b> use section 24.</p>
 `);
 
+S('storyline', '27. Another way to teach it: Sin → Death → Christ → Life', `
+<p class="note"><b>Before you use this:</b> James 5 is not mainly a passage about sin and death; it is about how believers wait under injustice. This section places long-suffering inside the Bible's whole story, so the group sees why our patience depends on Christ. Use it as a second teaching angle, not as a claim about what James 5 itself argues.</p>
+
+<h4>1. God's original design</h4>
+<p>God made humanity in his image to reflect his character and to live in peace with him and with each other (Genesis 1:26-28; 1:31; 2:18-25). Genesis 1-2 does not use the word "patience". <span class="tag inf">Inference from later Scripture</span> But the New Testament links being renewed "in the image of its Creator" with putting on "compassion, kindness, humility, gentleness and patience" (Colossians 3:10, 12). Patience is part of what it looks like to bear God's image.</p>
+
+<h4>2. Sin entered</h4>
+<p>In Genesis 3 Adam and Eve distrust God and disobey. Notice how quickly relationships break: Adam blames Eve, Eve blames the serpent (3:12-13). One chapter later Cain is angry, refuses God's warning and kills his brother (4:5-8). Lamech boasts of avenging himself "seventy-seven times" (4:23-24). <span class="tag prob">Widely noted</span> Jesus' command to forgive "seventy-seven times" (Matthew 18:22) reverses Lamech's revenge.</p>
+<p>Romans 5:12 says sin entered the world through one man, and death through sin. This passage deals with both humanity's fallen condition and our own sinful choices (Romans 3:23).</p>
+
+<h4>3. What sin produced</h4>
+<ul>
+<li><b>Guilt and condemnation:</b> the whole world is held accountable to God (Romans 3:19).</li>
+<li><b>Alienation from God:</b> Adam and Eve hid from God (Genesis 3:8); "your iniquities have separated you from your God" (Isaiah 59:2).</li>
+<li><b>Corruption:</b> anger, quarrels and fights come from desires at war within us (James 4:1-2).</li>
+<li><b>Bondage:</b> "everyone who sins is a slave to sin" (John 8:34).</li>
+<li><b>Death:</b> James himself traces it: desire gives birth to sin, and sin, "when it is full-grown, gives birth to death" (James 1:14-15); "the wages of sin is death" (Romans 6:23).</li>
+</ul>
+<p>Impatience, revenge and grumbling are not just personality flaws; they are fruit of this fallen condition.</p>
+
+<h4>4. Humanity's condition</h4>
+<p>We cannot fix this ourselves. "Human anger does not produce the righteousness that God desires" (James 1:20). No one is declared righteous by keeping the law (Romans 3:20). Paul describes wanting to do good and not being able to carry it out (Romans 7:18-19). We were "dead in transgressions" (Ephesians 2:1). Trying harder to be patient cannot remove guilt, change the heart or defeat death.</p>
+
+<h4>5. Christ enters</h4>
+<ul>
+<li><b>God's patience held back judgment:</b> in his forbearance God left sins committed beforehand unpunished, until he dealt with them at the cross (Romans 3:25-26).</li>
+<li><b>Adam versus Christ:</b> through one man's disobedience many were made sinners; through one man's obedience many will be made righteous (Romans 5:19).</li>
+<li><b>The cross:</b> when insulted, Jesus did not retaliate; he "himself bore our sins in his body on the cross" (1 Peter 2:23-24).</li>
+<li><b>The resurrection:</b> Christ is the firstfruits of those who have died; the last enemy to be destroyed is death (1 Corinthians 15:20, 26). "Death has been swallowed up in victory" (15:54-57).</li>
+<li><b>Patience shown to sinners:</b> Christ displayed his "immense patience" to Paul, the worst of sinners (1 Timothy 1:16).</li>
+</ul>
+
+<h4>6. The gospel response</h4>
+<p>God's kindness, forbearance and patience are meant to lead us to repentance (Romans 2:4). We are justified by faith, not by works of the law (Romans 3:28; 5:1), by grace through faith (Ephesians 2:8-9). United to Christ, we die to sin and rise to new life (Romans 6:4). <b>The basis</b> of salvation is Christ's obedience, death and resurrection. <b>The fruit</b> is a changed life, including patience (Galatians 5:22; Ephesians 2:10). Patience does not earn God's acceptance; it grows because we have been accepted.</p>
+
+<h4>7. Life in Christ</h4>
+<p><b>Now:</b> reconciled to God (Romans 5:10-11), freed from sin's slavery (Romans 6:18), and clothed with patience, "bearing with each other and forgiving one another... as the Lord forgave you" (Colossians 3:12-13).</p>
+<p><b>Not yet:</b> we still "groan inwardly" as we wait for the redemption of our bodies (Romans 8:23), and James tells us to be patient "until the Lord's coming" (James 5:7). Long-suffering is the shape of life between the cross and the return of Christ.</p>
+
+<h4>8. Final restoration</h4>
+<p>God's patience now is so that people can come to repentance, and it ends with new heavens and a new earth (2 Peter 3:9, 13). At Christ's return the dead are raised and death is destroyed (1 Corinthians 15:51-57). Revelation 21-22 reverses Genesis 3: no more death or mourning (21:4), the tree of life restored (22:2; compare Genesis 3:22-24), and "no longer will there be any curse" (22:3). The waiting ends; the Judge has come; patience gives way to sight.</p>
+
+<h4>9. Guarding the interpretation</h4>
+<ul>
+<li>James 5:7-11 is about patience under injustice in light of the Lord's coming. It does not itself teach the doctrine of the atonement; that comes from connecting it with the wider story.</li>
+<li>Christians differ on how Adam's sin is passed on to humanity in Romans 5:12 (for example, Reformed "federal headship", other Western views of inherited guilt, and the Eastern Orthodox emphasis on inherited mortality). All agree that sin and death came through Adam and that life comes through Christ. You don't need to settle this in the group.</li>
+<li>The Lamech and "seventy-seven times" link is a widely noted echo, not something Jesus states outright.</li>
+</ul>
+
+<h4>10. Final summary</h4>
+<p class="big">Creation → Sin → Fall → Death → Need for Redemption → Christ → Cross → Resurrection → Faith → New Life → Resurrection of Believers → New Creation</p>
+<dl class="kv2">
+<dt>What did sin do?</dt><dd>It broke our trust in God and our peace with each other, producing guilt, anger, revenge, slavery and death.</dd>
+<dt>What did Christ do?</dt><dd>He bore our sin without retaliating, rose to defeat death, and shows sinners immense patience.</dd>
+<dt>For someone in Christ</dt><dd>We are forgiven and reconciled, and the Spirit grows God's own patience in us while we wait for the day when death is gone for good.</dd>
+</dl>
+
+<h4>A four-movement way to teach it</h4>
+<div class="point"><p><b>Sin.</b> Key verse: Genesis 4:6-7. <i>Plain meaning:</i> right after the fall, anger takes hold of Cain, and God warns him that sin is crouching at the door. <i>Picture:</i> a pot left on the stove until it boils over. <i>Question:</i> What usually "boils over" in you when someone wrongs you?</p></div>
+<div class="point"><p><b>Death.</b> Key verse: James 1:15. <i>Plain meaning:</i> sin is never small; when it is full-grown it gives birth to death, in relationships and before God. <i>Picture:</i> a crack in a windscreen that keeps spreading. <i>Question:</i> Where have you seen unforgiveness or revenge slowly kill a relationship?</p></div>
+<div class="point"><p><b>Christ.</b> Key verse: 1 Peter 2:23-24. <i>Plain meaning:</i> Jesus was wronged more than anyone, did not retaliate, and carried our sin to the cross. <i>Picture:</i> a person who catches the blow meant for you. <i>Question:</i> How does knowing Jesus absorbed your sin change the way you see the person who hurt you?</p></div>
+<div class="point"><p><b>Life.</b> Key verse: Colossians 3:12-13. <i>Plain meaning:</i> people raised with Christ "clothe themselves" with patience and forgive as the Lord forgave them. <i>Picture:</i> taking off old clothes and putting on new ones. <i>Question:</i> What is one way you will "put on" patience with someone this week?</p></div>
+`);
+
 // Story slides for presenting to the group. Notes are for the leader only (press N in the presenter).
 L1.slides = [
   { kicker: 'Life Group · James 5', title: 'Slow to Anger, Strong to Stand', titleHtml: 'Slow to Anger, <em>Strong to Stand</em>', layout: 'title', art: 'sunrise', alt: 'A seedling growing as the sun rises',
     body: '<p>What long-suffering really is, and where it comes from.</p>',
-    notes: 'Welcome everyone. Open in prayer (or ask your prepared member). Keep this slide up while people settle.' },
+    notes: 'Welcome everyone. Open in prayer (or ask your prepared member). Keep this slide up while people settle.',
+    preach: ['Welcome, church. Welcome, family.', 'Tonight we are going to talk about something every one of us needs, and almost none of us enjoys.', '^Long-suffering!', '**Slow to anger. Strong to stand.'] },
   { kicker: 'Ice breaker', title: 'What makes you lose your patience fastest?', art: 'hourglass', alt: 'An hourglass and a clock',
     body: '<p>Traffic? Load-shedding? Slow Wi-Fi? A group chat?</p>',
-    notes: 'Answer first yourself, lightly. Go round the room. Follow-ups if quiet: When you lose patience, do you go quiet, get sharp, or complain to someone else? Who is the most patient person you know?' },
+    notes: 'Answer first yourself, lightly. Go round the room. Follow-ups if quiet: When you lose patience, do you go quiet, get sharp, or complain to someone else? Who is the most patient person you know?',
+    preach: ['Let me ask you something.', 'What is the one thing that makes you lose your patience faster than anything else?', 'The traffic? The load-shedding? That one group chat?', '^Be honest with me tonight!'] },
   { kicker: 'The question', title: 'Patient with things. Impatient with people.', art: 'balance', alt: 'Two people, one crossed out in frustration, one calm',
     body: '<p>We wait for the taxi and the rain. But when a <i>person</i> wrongs us, something rises up.</p><p>Is long-suffering just letting people walk all over you?</p>',
-    notes: 'This is the opening introduction (section 6). Mention the post going around about long-suffering. Don\'t give the answer yet.' },
+    notes: 'This is the opening introduction (section 6). Mention the post going around about long-suffering. Don\'t give the answer yet.',
+    preach: ['We are patient with things.', 'We will wait for the taxi. We will wait for the rain.', 'But when a person wrongs us... something rises up!', '**So is long-suffering just letting people walk all over you?'] },
   { kicker: 'Picture the scene · James 5:1-6', title: 'A field. A full harvest. An empty purse.', art: 'field', alt: 'Workers in a wheat field and an empty money pouch',
     body: '<p class="dk-verse">"The wages you failed to pay the workers who mowed your fields are crying out against you."<span class="dk-ref">James 5:4</span></p><p>Day labourers needed that money tonight to eat.</p>',
-    notes: 'Have Reader 1 read James 5:1-6. Explain: same-day wages were God\'s command (Deuteronomy 24:14-15). These believers were poor, cheated, and powerless to fix it.' },
+    notes: 'Have Reader 1 read James 5:1-6. Explain: same-day wages were God\'s command (Deuteronomy 24:14-15). These believers were poor, cheated, and powerless to fix it.',
+    preach: ['Picture the scene James paints.', 'A field. A full harvest. Workers who mowed it in the heat of the day.', 'And when evening comes, the rich man keeps their wages!', '**Those wages are crying out, and the Lord Almighty has heard them.'] },
   { kicker: 'God sees', title: 'James doesn\'t say "it\'s fine"', art: 'scales', alt: 'A set of scales',
     body: '<p>He tells the oppressors to <b>weep and wail</b>. Injustice matters to God.</p><p>Then he turns to the believers...</p>',
-    notes: 'Key point: long-suffering is never pretending a wrong didn\'t happen. James condemns it loudly first.' },
+    notes: 'Key point: long-suffering is never pretending a wrong didn\'t happen. James condemns it loudly first.',
+    preach: ['Now hear me.', 'James does not say, it\'s fine. James does not say, just forget it.', '^He tells the oppressors to weep and wail!', '**Injustice matters to God.', 'And then... he turns to the believers.'] },
   { kicker: 'James 5:7', title: '"Be patient, then..."', art: 'farmer', alt: 'A farmer watching clouds and rain over a planted field',
     body: '<p class="dk-verse">"See how the farmer waits for the land to yield its valuable crop, patiently waiting for the autumn and spring rains."<span class="dk-ref">James 5:7</span></p><p>It\'s October. Our farmers are watching the sky right now.</p>',
-    notes: 'Reader 2 reads 5:7-9. "Then" (oun) ties this to 5:1-6: because God will judge, you don\'t have to. The farmer works AND waits for what only God can give.' },
+    notes: 'Reader 2 reads 5:7-9. "Then" (oun) ties this to 5:1-6: because God will judge, you don\'t have to. The farmer works AND waits for what only God can give.',
+    preach: ['Be patient, then!', 'Look at the farmer. He plants. He works. He waits for the autumn rain and the spring rain.', 'He cannot make it rain. Only God can make it rain!', '**Do what is yours to do, and trust God for what only God can do.'] },
   { kicker: 'Two Greek words', title: 'Slow to anger. Strong to stand.', titleHtml: 'Slow to anger. <em>Strong to stand.</em>', art: 'twowords', alt: 'Two people at peace on the left; a person holding up a heavy weight on the right',
     body: '<div class="dk-two"><div><b>makrothymia</b><span class="gk">μακροθυμία</span><br>Patience with <i>people</i>. Not exploding, not retaliating. (5:7, 8, 10)</div><div><b>hypomonē</b><span class="gk">ὑπομονή</span><br>Endurance under <i>pressure</i>. Not collapsing, not quitting. (5:11; 1:3-4)</div></div>',
-    notes: 'Both are translated "patience" in English. The post quoted James 1:4, which is hypomonē (endurance). Say gently: "The post is right about maturity; let\'s see where the Bible uses the word." Don\'t preach word parts (makros + thymos); the meaning comes from usage.' },
+    notes: 'Both are translated "patience" in English. The post quoted James 1:4, which is hypomonē (endurance). Say gently: "The post is right about maturity; let\'s see where the Bible uses the word." Don\'t preach word parts (makros + thymos); the meaning comes from usage.',
+    preach: ['There are two words in James you need to know.', 'Makrothymia. Slow to anger with people. Not exploding. Not paying back.', 'Hupomonay. Strong to stand under pressure. Not collapsing. Not quitting.', '**God wants to grow both of them in you.'] },
   { kicker: '1 · It starts with God', title: '"The Lord is full of compassion and mercy"', art: 'mountain', alt: 'Mount Sinai under a cloud with two stone tablets',
     body: '<p class="dk-verse">"The LORD, the LORD, the compassionate and gracious God, slow to anger, abounding in love and faithfulness."<span class="dk-ref">Exodus 34:6</span></p><p>God said this right after Israel built the golden calf.</p>',
-    notes: 'Reader 3 reads 5:10-11. Greek Old Testament uses makrothymos in Exodus 34:6. Ask: Where have you seen God be patient with you?' },
+    notes: 'Reader 3 reads 5:10-11. Greek Old Testament uses makrothymos in Exodus 34:6. Ask: Where have you seen God be patient with you?',
+    preach: ['Where does this patience come from?', 'Not from your personality. Not from your willpower.', '^It comes from God himself!', 'The Lord, the Lord, the compassionate and gracious God, slow to anger, abounding in love.', '**He said that right after Israel built the golden calf. That is how patient our God is.'] },
   { kicker: '2 · Wait for the Lord, not for revenge', title: '"The Judge is standing at the door!"', art: 'door', alt: 'A door opening with light streaming out',
     body: '<p>Long-suffering is not pretending. It is <b>refusing to take God\'s place as judge</b>.</p><p class="dk-verse">"Do not take revenge... leave room for God\'s wrath."<span class="dk-ref">Romans 12:19</span></p>',
-    notes: 'Ask: Is there a situation where you\'ve been quietly waiting, not for God to act, but for your chance to get even? Pause. Let it land.' },
+    notes: 'Ask: Is there a situation where you\'ve been quietly waiting, not for God to act, but for your chance to get even? Pause. Let it land.',
+    preach: ['The Judge is standing at the door!', 'You do not have to be the judge. You were never meant to be the judge.', 'Do not take revenge. Leave room for God.', '**Long-suffering is not pretending. It is refusing to take God\'s place.'] },
   { kicker: '3 · Under pressure', title: '"Don\'t grumble against one another"', art: 'circle', alt: 'A group of people with speech bubbles, one with a heart, one crossed out',
     body: '<p>The enemy was outside. The danger was believers groaning about <b>each other</b>.</p><p>Exam stress. Money worries. The WhatsApp side-chat.</p>',
-    notes: 'James 5:9. Raise concerns WITH people (Matthew 18:15), not ABOUT them. Ask: When you\'re under pressure, who usually gets your impatience?' },
+    notes: 'James 5:9. Raise concerns WITH people (Matthew 18:15), not ABOUT them. Ask: When you\'re under pressure, who usually gets your impatience?',
+    preach: ['Now notice what James says next.', 'Don\'t grumble against one another.', 'When the pressure comes from outside, who gets the worst of it? The people closest to us!', '**Church, let us not turn on each other.'] },
   { kicker: '4 · Endurance makes us mature', title: 'Who you become while you wait', art: 'tree', alt: 'A tree with deep roots standing in the wind',
     body: '<p class="dk-verse">"Let perseverance finish its work so that you may be mature and complete, not lacking anything."<span class="dk-ref">James 1:4</span></p><p>"Mature" (<span class="gk">τέλειος</span>), not flawless. The prophets. Job.</p>',
-    notes: 'Teleios = mature, complete; James 3:2 says we all stumble. Ask: What might God be forming in you through what you\'re waiting for?' },
+    notes: 'Teleios = mature, complete; James 3:2 says we all stumble. Ask: What might God be forming in you through what you\'re waiting for?',
+    preach: ['Let perseverance finish its work.', 'God is not only asking how long you have waited.', '^He is asking who you are becoming while you wait!', '**Mature. Complete. Not flawless, but grown up in Christ.'] },
   { kicker: 'Jesus', title: 'He did not retaliate', art: 'cross', alt: 'A cross on a hill with light rising behind it',
     body: '<p class="dk-verse">"When they hurled their insults at him, he did not retaliate... Instead, he entrusted himself to him who judges justly."<span class="dk-ref">1 Peter 2:23</span></p><p>And he showed "immense patience" to sinners like us (1 Timothy 1:16).</p>',
-    notes: 'The gospel: we don\'t become patient to be accepted. We\'ve been accepted, so the Spirit makes us patient. Long-suffering is fruit of the Spirit (Galatians 5:22), not willpower.' },
+    notes: 'The gospel: we don\'t become patient to be accepted. We\'ve been accepted, so the Spirit makes us patient. Long-suffering is fruit of the Spirit (Galatians 5:22), not willpower.',
+    preach: ['Look at Jesus!', 'When they insulted him, he did not insult back.', 'When he suffered, he made no threats.', 'He entrusted himself to the One who judges justly.', '**And on that cross, he carried the sin of people like you and me.'] },
   { kicker: 'Isaiah 40:31', title: 'Those who wait on the LORD', art: 'eagle', alt: 'An eagle with wings spread over mountains',
     body: '<p class="dk-verse">"But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles..."<span class="dk-ref">Isaiah 40:31 KJV</span></p><p>A promise of <b>strength while you wait</b>, not a promise of the outcome you want.</p>',
-    notes: 'Spoken first to exiles who felt forgotten (40:27). The Greek Old Testament uses hypomenō here, the same idea as James\'s "perseverance". Correct gently if someone treats it as "God will give me what I want".' },
+    notes: 'Spoken first to exiles who felt forgotten (40:27). The Greek Old Testament uses hypomenō here, the same idea as James\'s "perseverance". Correct gently if someone treats it as "God will give me what I want".',
+    preach: ['They that wait upon the Lord shall renew their strength!', 'They shall mount up with wings as eagles.', 'This is not a promise that you will get everything you want.', '**It is a promise that God will give you strength while you wait for him.'] },
   { kicker: 'Clear up the confusion', title: 'Long-suffering is not being a doormat', art: 'balance', alt: 'Two people: one marked with an X, one at peace',
     body: '<div class="dk-two"><div><b>It is not</b>Staying in danger · Keeping abuse secret · Never speaking up · Doing nothing</div><div><b>It is</b>No revenge · No bitterness · Telling the truth kindly · Leaving judgment to God</div></div>',
-    notes: 'Be careful here. If anyone is in an unsafe situation, long-suffering never means staying in danger. Follow up privately and involve your Shepherd.' },
+    notes: 'Be careful here. If anyone is in an unsafe situation, long-suffering never means staying in danger. Follow up privately and involve your Shepherd.',
+    preach: ['Let me be very clear tonight.', 'Long-suffering is not staying in danger. It is not keeping abuse a secret.', 'It is no revenge. No bitterness. Telling the truth with love.', '**And leaving the judgment to God.'] },
   { kicker: 'A quiet moment', title: 'Two minutes with God', art: 'candle', alt: 'A single candle burning',
     body: '<ul><li>Who am I waiting to see "get what they deserve"?</li><li>Who pays for it when I\'m under pressure?</li><li>Am I grumbling about someone instead of speaking to them?</li></ul>',
-    notes: 'Say: No one will be asked to share. Be silent for about two minutes. Then invite people to confess, release that person to God, and ask the Spirit for patience.' },
+    notes: 'Say: No one will be asked to share. Be silent for about two minutes. Then invite people to confess, release that person to God, and ask the Spirit for patience.',
+    preach: ['Let\'s be still now.', 'No one will ask you to share.', 'Who are you waiting to see get what they deserve?', '**Hand that person over to God tonight.'] },
   { kicker: 'This week', title: 'One person. Seven days.', art: 'notebook', alt: 'A notebook with five numbered lines and a pen',
     body: '<ol><li>Believe: God is patient with me, and he is the Judge.</li><li>Stop: one specific thing.</li><li>Start: pray for that person by name daily.</li><li>Tell: my Prayer and Check-up Buddy.</li><li>By: next Life Group.</li></ol>',
-    notes: 'Ask everyone to write the five lines in their notebook now. Send the midweek WhatsApp check-in (section 21).' },
+    notes: 'Ask everyone to write the five lines in their notebook now. Send the midweek WhatsApp check-in (section 21).',
+    preach: ['Here is your challenge for this week.', 'One person. Seven days.', 'Pray for them by name, every single day.', '**And tell your prayer buddy how it is going.'] },
   { kicker: 'The central truth', title: 'God is patient with us, and he makes his people patient.', titleHtml: 'God is patient with us, <em>and he makes his people patient.</em>', layout: 'title', art: 'sunrise', alt: 'A seedling growing as the sun rises',
     body: '<p>Release one person to God the Judge this week, and choose patience with them in prayer and in action.</p>',
-    notes: 'Read the closing summary, then the closing prayer (sections 23 and 24). Then move to prayer requests and announcements (check the dates first).' },
+    notes: 'Read the closing summary, then the closing prayer (sections 23 and 24). Then move to prayer requests and announcements (check the dates first).',
+    preach: ['So here it is, church.', '^God is patient with us!', '**And he makes his people patient.', 'Go in his strength. Amen.'] },
 ];
 
 export const LESSONS = [L1];

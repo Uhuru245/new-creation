@@ -185,3 +185,102 @@ export function buildPrompt(v) {
   const line = (label, val) => `${label}\n${(val || '').trim() || '[Not given. Make a reasonable assumption and say what you assumed.]'}`;
   return `${PROMPT_TITLE}\n\n${BODY}\n\n---\n\nMY LIFE GROUP TEACHING REQUEST\n\nPrepare the complete lesson using the structure above.\n\n${line('Passage, Topic or Question', v.topic)}\n\n${line('Main Outcome I Want for the Group', v.outcome)}\n\n${line('Group Context', v.context)}\n\n${line('Preferred Teaching Length', v.length)}\n\n${line('Preferred Bible Translation', v.translation)}${(v.extra || '').trim() ? `\n\nAlso include\n${v.extra.trim()}` : ''}`;
 }
+
+// ---------- Second master prompt: the biblical storyline SIN → DEATH → CHRIST → LIFE ----------
+export const STORY_TITLE = 'MASTER PROMPT: SIN → DEATH → CHRIST → LIFE';
+const STORY_BODY = `Act as a careful biblical theologian and Bible teacher. Help me study Scripture by tracing the biblical storyline of:
+
+SIN → DEATH → CHRIST → LIFE
+
+Whenever I give you a verse, passage, doctrine, theological claim, or question, analyse it through this framework.
+
+1. GOD'S ORIGINAL DESIGN
+Begin with God's intention for humanity and creation. Ask:
+- What did God originally create or intend?
+- What was humanity's relationship with God?
+- What was humanity created to be or do?
+- What does Genesis 1–2 contribute to understanding this subject?
+
+2. SIN ENTERED
+Identify what changed through human rebellion. Explain:
+- What sin is in this context.
+- How sin entered or affected the situation.
+- Whether the passage deals with individual sin, humanity's fallen condition, or both.
+- How Adam's disobedience relates to humanity where relevant.
+Key passages may include: Genesis 3; Romans 3:23; Romans 5:12–19.
+
+3. WHAT SIN PRODUCED
+Trace the consequences rather than simply saying, "People became sinful." Examine whether Scripture identifies:
+Sin → guilt/condemnation → alienation from God → corruption → bondage → death
+Distinguish carefully between these concepts rather than treating them as identical. Support every major conclusion with Scripture.
+
+4. HUMANITY'S CONDITION
+Explain what humanity is incapable of fixing by itself. Ask:
+- Can human effort remove guilt?
+- Can obedience to the law justify sinners?
+- Can good works conquer death?
+- Can humanity reconcile itself to God?
+- Why is divine intervention necessary?
+Consider passages such as: Romans 3:19–28; Romans 6:23; Romans 7; Ephesians 2:1–10.
+
+5. CHRIST ENTERS
+Show specifically what Jesus does about the problem. Trace:
+Adam's disobedience → condemnation and death
+versus
+Christ's obedience → justification and life
+Explain Christ's incarnation, perfect obedience, death, atonement, resurrection, victory over sin and death, and reconciliation of believers to God. Give particular attention to Romans 5:12–21 and 1 Corinthians 15:20–28, 45–57.
+
+6. THE GOSPEL RESPONSE
+Explain how a person participates in what Christ accomplished. Examine repentance, faith, grace, justification, regeneration, union with Christ, and sanctification. Clearly distinguish between the basis of salvation and the fruit of salvation. Do not confuse good works with the means by which someone earns justification.
+
+7. LIFE IN CHRIST
+Explain what changes for someone who belongs to Christ. Trace:
+Sin → death
+against
+Christ → righteousness → reconciliation → freedom → life
+Explain both what believers experience now, and what remains to be completed at resurrection.
+
+8. FINAL RESTORATION
+Connect the teaching to the completion of God's redemptive story. Ask:
+- How will Christ finally defeat death?
+- What happens at the resurrection?
+- How is creation restored?
+- How does Revelation 21–22 complete what was lost in Genesis 3?
+
+9. GUARD AGAINST BAD INTERPRETATION
+Before reaching a conclusion:
+- Read the verse in its immediate context.
+- Consider the argument of the whole chapter/book.
+- Distinguish explicit biblical teaching from theological inference.
+- Do not build doctrine from an isolated verse.
+- Do not force every passage into this framework if the passage is addressing something different.
+- Identify major Christian interpretations where genuine disagreement exists.
+- Never invent Scripture references or quotations.
+
+10. FINAL SUMMARY
+Finish with a simple chain showing the biblical argument. Use this format where appropriate:
+Creation → Sin → Fall → Death → Need for Redemption → Christ → Cross → Resurrection → Faith → New Life → Resurrection of Believers → New Creation
+Then answer:
+- What did sin do?
+- What did Christ do about it?
+- What does this mean for someone who is in Christ?
+
+Keep Jesus Christ at the centre of the explanation and let Scripture interpret Scripture.
+
+Also give me another way of teaching the subject from the SIN → DEATH → CHRIST → LIFE point of view: a simple four-movement outline (Sin, Death, Christ, Life) I can teach to a Life Group, with one key verse, one plain-language explanation, one picture or illustration and one discussion question for each movement.`;
+
+export const STORY_FIELDS = [
+  { id: 'topic', label: 'Verse, passage, doctrine, claim or question', rows: 5, placeholder: 'e.g. Romans 6:23, "What is long-suffering?", or a claim you want tested.' },
+  { id: 'use', label: 'What is this for?', type: 'select', options: ['Teaching my Life Group', 'My own study', 'Preparing a sermon'] },
+  { id: 'extra', label: 'Anything else (optional)', rows: 3, placeholder: 'Group context, length, translation, or a specific question.' },
+];
+
+export function buildStoryPrompt(v) {
+  const topic = (v.topic || '').trim() || '[Not given. Ask me for a verse or question first.]';
+  return `${STORY_TITLE}\n\n${STORY_BODY}\n\n---\n\nMY REQUEST\n\n${topic}\n\nThis is for: ${v.use || 'Teaching my Life Group'}${(v.extra || '').trim() ? `\n\nAlso: ${v.extra.trim()}` : ''}`;
+}
+
+export const PROMPTS = {
+  lifegroup: { name: 'Life Group lesson', title: PROMPT_TITLE, fields: FIELDS, build: buildPrompt, blurb: 'A complete, ready-to-teach lesson through Koine Greek and the New Covenant.' },
+  storyline: { name: 'Sin → Death → Christ → Life', title: STORY_TITLE, fields: STORY_FIELDS, build: buildStoryPrompt, blurb: 'Trace any verse, doctrine or question through the whole biblical storyline, from Eden to the new creation.' },
+};

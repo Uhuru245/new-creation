@@ -1,7 +1,7 @@
 // Leader only: Life Group teaching. The master prompt builder and prepared lessons.
 import { $, $$, esc, icon, toast, copyText, store } from '../util.js';
 import { S } from '../state.js';
-import { PROMPT_TITLE, FIELDS, buildPrompt } from './teach-prompt.js';
+import { PROMPTS } from './teach-prompt.js';
 import { LESSONS } from './teach-lessons.js';
 import { present } from './teach-slides.js';
 
@@ -39,17 +39,27 @@ const CSS = `<style id="teachCss">
 .teach .meta{display:grid;gap:2px;font-size:14px;color:var(--ink-2)}
 </style>`;
 
+let pk = 'lifegroup';
 function promptCard() {
-  const d = store.pget('teachDraft', {}) || {};
+  const P = PROMPTS[pk]; const d = store.pget('teachDraft_' + pk, null) || (pk === 'lifegroup' ? store.pget('teachDraft', {}) : {}) || {};
   const field = (f) => f.type === 'select'
     ? `<label class="field">${esc(f.label)}<select class="input" data-f="${f.id}">${f.options.map((o) => `<option ${d[f.id] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`
     : f.rows ? `<label class="field">${esc(f.label)}<textarea class="input" data-f="${f.id}" rows="${f.rows}" placeholder="${esc(f.placeholder || '')}">${esc(d[f.id] || '')}</textarea></label>`
       : `<label class="field">${esc(f.label)}<input class="input" data-f="${f.id}" placeholder="${esc(f.placeholder || '')}" value="${esc(d[f.id] || '')}"></label>`;
-  return `<section class="card"><div class="card-head"><h3>Master prompt</h3><span class="pill">Koine Greek · New Covenant</span></div>
-    <p class="small muted">${esc(PROMPT_TITLE)}. Fill in your request, copy the full prompt, and paste it into Claude to prepare a new lesson.</p>
-    <form class="stack" id="pf" style="margin-top:10px" novalidate>${FIELDS.map(field).join('')}
+  return `<section class="card" id="pcard"><div class="card-head"><h3>Master prompts</h3><span class="pill">${Object.keys(PROMPTS).length}</span></div>
+    <div class="seg" role="group" aria-label="Choose a master prompt" style="margin-top:6px">${Object.entries(PROMPTS).map(([k, x]) => `<button type="button" data-pk="${k}" aria-pressed="${k === pk}">${esc(x.name)}</button>`).join('')}</div>
+    <p class="small muted" style="margin-top:10px"><b>${esc(P.title)}.</b> ${esc(P.blurb)} Fill in your request, copy the full prompt, and paste it into Claude.</p>
+    <form class="stack" id="pf" style="margin-top:10px" novalidate>${P.fields.map(field).join('')}
       <div class="btns"><button class="btn primary" type="button" id="pCopy">${icon('copy')} Copy full prompt</button><a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">${icon('link')} Open Claude</a><button class="btn" type="button" id="pClear">Clear</button></div>
       <p class="small faint" id="pInfo">Your request is kept on this device until you clear it.</p></form></section>`;
+}
+function mountPrompt(root) {
+  const pf = $('#pf', root); if (!pf) return;
+  const vals = () => Object.fromEntries($$('[data-f]', pf).map((e) => [e.dataset.f, e.value]));
+  pf.addEventListener('input', () => store.pset('teachDraft_' + pk, vals()));
+  $('#pCopy', pf).onclick = async () => { const v = vals(); if (!(v.topic || '').trim()) { toast('Add a passage, topic or question first.'); $('[data-f="topic"]', pf).focus(); return; } await copyText(PROMPTS[pk].build(v)); $('#pInfo', pf).textContent = 'Copied. Open Claude and paste it into a new chat.'; };
+  $('#pClear', pf).onclick = () => { store.pdel('teachDraft_' + pk); if (pk === 'lifegroup') store.pdel('teachDraft'); $$('[data-f]', pf).forEach((e) => { if (e.tagName !== 'SELECT') e.value = ''; }); toast('Cleared.'); };
+  $$('[data-pk]', root).forEach((b) => b.onclick = () => { pk = b.dataset.pk; const card = $('#pcard', root); card.outerHTML = promptCard(); mountPrompt(root); });
 }
 
 function lessonList() {
@@ -76,13 +86,7 @@ export async function render(r) {
 export function mount(root, r) {
   if (!S.data.me.leader) return;
   const t = $('.teach', root);
-  const pf = $('#pf', root);
-  if (pf) {
-    const vals = () => Object.fromEntries($$('[data-f]', pf).map((e) => [e.dataset.f, e.value]));
-    pf.addEventListener('input', () => store.pset('teachDraft', vals()));
-    $('#pCopy', pf).onclick = async () => { const v = vals(); if (!v.topic.trim()) { toast('Add a passage, topic or question first.'); $('[data-f="topic"]', pf).focus(); return; } await copyText(buildPrompt(v)); $('#pInfo', pf).textContent = 'Copied. Open Claude and paste it into a new chat.'; };
-    $('#pClear', pf).onclick = () => { store.pdel('teachDraft'); $$('[data-f]', pf).forEach((e) => { if (e.tagName !== 'SELECT') e.value = ''; }); toast('Cleared.'); };
-  }
+  mountPrompt(root);
   const l = r.parts[0] && LESSONS.find((x) => x.id === r.parts[0]);
   if (!l) return;
   $('#tShow', root).onclick = () => present(l);
