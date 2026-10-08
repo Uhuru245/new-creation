@@ -13,10 +13,12 @@ export async function render() {
     <p>To run the shared reading challenge, show your progress, let the circle encourage and pray for one another, let the leader support members and reset forgotten PINs, and keep accounts secure.</p>
     <h3>Who can see what</h3>
     <ul><li><b>Everyone in the circle:</b> your name, your chapter count and whether you read today (unless you turn on "Keep my progress private"), and your Circle posts.</li>
-      <li><b>Only the leader:</b> your WhatsApp number, your progress (even if private), when you last opened the app, and the sign-in log.</li>
+      <li><b>Only the leader:</b> your WhatsApp number, your email address if you choose to give it, your progress (even if private), when you last opened the app, and the sign-in log.</li>
       <li><b>Only you:</b> your notes, bookmarks, highlights and word studies.</li></ul>
     <h3>Emails to the leader</h3>
     <p>The leader receives emails when someone joins, when members first open the app each day, a short evening summary, and a notice when a prayer request is posted. Prayer notices name the member but do not include the request text.</p>
+    <h3>Emails from New Creation</h3>
+    <p>If you choose to add your email address, New Creation may send you verses, group announcements and upcoming challenges, each addressed to you by name. It is never shown to other members or shared outside the group. You can change it or stop the emails at any time under Me, Email updates.</p>
     <h3>Where it is stored</h3>
     <p>Member information is stored in a Google Sheet in the leader's Google account, on Google's servers, which may be outside South Africa. The app itself is a website. Your phone keeps a copy of recent app data and any Bible text you've opened so the app works quickly and offline; signing out removes your private copy from that device.</p>
     <h3>How long we keep it</h3>

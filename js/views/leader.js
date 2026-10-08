@@ -1,5 +1,5 @@
 // Leader area: members, PIN resets, daily group post, challenge scheduling, study review.
-import { $, $$, esc, icon, toast, sheet, closeSheet, copyText, waLink, fmtDate, todayISO, addDays, when } from '../util.js';
+import { $, $$, esc, icon, toast, sheet, closeSheet, copyText, waLink, fmtDate, todayISO, addDays, when, download } from '../util.js';
 import { call } from '../api.js';
 import { S, planDay } from '../state.js';
 import { PLANS, buildPlan } from '../bible.js';
@@ -37,6 +37,10 @@ export async function render() {
   <section class="card"><div class="card-head"><h3>Members</h3><span class="pill" id="mcount">${members ? members.length : '…'}</span></div>
     <input class="input" id="msearch" type="search" placeholder="Search by name" aria-label="Search members" value="${esc(q)}">
     <div class="people" id="mlist">${members ? '' : '<div class="skeleton" style="height:60px"></div>'}</div></section>
+  <section class="card" id="emList"><div class="card-head"><h3>Email list</h3><span class="pill" id="emCount">…</span></div>
+    <p class="small muted">People who chose to receive verses, announcements and upcoming challenges by email. Each person gets their own email with their own name in it. To write to one person, tap their name under Members.</p>
+    <div class="btns"><button class="btn primary" id="emWrite">${icon('note')} Write an email</button><button class="btn" id="emCopy">${icon('copy')} Copy addresses</button><button class="btn" id="emCsv">${icon('download')} Download list</button></div>
+    <p class="small faint" id="emNote"></p></section>
   <section class="card" id="chBox"><div class="card-head"><h3>Challenges</h3><span class="pill">One at a time</span></div><div id="chList"><div class="skeleton" style="height:60px"></div></div></section>
   ${studies.length ? `<section class="card"><div class="card-head"><h3>Study review</h3><span class="pill">${R.studies.approved}/${R.studies.total} days · ${R.books.approved}/${R.books.total} books</span></div>
     <p class="small muted">Members only see studies and book introductions after you approve them.</p>
@@ -51,17 +55,68 @@ function memberRows(root) {
   $('#mcount', root).textContent = members ? members.length : '…';
   $('#mlist', root).innerHTML = list.length ? list.map((m) => `<button class="person itemlink" data-m="${esc(m.id)}"><span class="avatar" aria-hidden="true">${esc(m.name.charAt(0).toUpperCase())}</span><span class="info"><b>${esc(m.name)}</b><span>${esc(STATUS[m.status] || m.label)} · ${m.ch} chapters · last seen ${m.lastSeen ? esc(fmtDate(m.lastSeen, { day: 'numeric', month: 'short' })) : 'never'}</span></span>${icon('next')}</button>`).join('') : '<p class="small muted">No members match.</p>';
   $$('[data-m]', root).forEach((b) => b.onclick = () => memberSheet(members.find((m) => m.id === b.dataset.m), root));
+  emailList(root);
+}
+const fillName = (s, m) => s.replace(/\{first\}/gi, m.name.split(' ')[0]).replace(/\{name\}/gi, m.name);
+const DRAFT = 'nc.mailDraft';
+function composer(ids) {
+  const people = members.filter((m) => m.email); const pick = new Set(ids);
+  let d = {}; try { d = JSON.parse(localStorage.getItem(DRAFT) || '{}'); } catch (e) {}
+  const one = ids.length === 1 && people.find((m) => m.id === ids[0]);
+  const s = sheet(`<div class="card-head"><h3>${one ? `Email ${esc(one.name)}` : 'Write an email'}</h3><button class="icon-btn" id="cmX" aria-label="Close">${icon('close')}</button></div>
+    <p class="small muted">Type <b>{first}</b> where you want each person's first name, or <b>{name}</b> for their full name. Each person receives their own email, from your Google account, as "New Creation".</p>
+    <label class="field" style="margin-top:10px">Subject<input class="input" id="cmS" maxlength="150" value="${esc(d.s || '')}" placeholder="A verse for your week, {first}"></label>
+    <label class="field">Message<textarea class="input" id="cmB" rows="9" placeholder="Hi {first},&#10;&#10;This week's verse is ...">${esc(d.b || '')}</textarea></label>
+    <details ${one ? '' : 'open'} style="margin-top:8px"><summary class="small"><b id="cmN"></b></summary>
+      <div class="stack-sm" style="margin-top:8px">${people.length > 1 ? '<div class="btns"><button class="btn sm" type="button" id="cmAll">Everyone</button><button class="btn sm" type="button" id="cmNone">No one</button></div>' : ''}
+      ${people.map((m) => `<label class="toggle"><span><b>${esc(m.name)}</b><br><span class="small muted">${esc(m.email)}</span></span><input type="checkbox" data-to="${esc(m.id)}" ${pick.has(m.id) ? 'checked' : ''}></label>`).join('')}</div></details>
+    <div class="note small" style="margin-top:12px" id="cmPrev"></div>
+    <p class="err" id="cmErr" role="alert"></p>
+    <div class="btns"><button class="btn primary" id="cmGo">${icon('check')} Send</button><button class="btn" id="cmCancel">Cancel</button></div>`, { label: 'Write an email' });
+  const chosen = () => $$('[data-to]', s).filter((c) => c.checked).map((c) => c.dataset.to);
+  const paint = () => {
+    const ids2 = chosen(), n = ids2.length; const first = people.find((m) => m.id === ids2[0]);
+    $('#cmN', s).textContent = `Sending to ${n} ${n === 1 ? 'person' : 'people'}`;
+    $('#cmGo', s).innerHTML = `${icon('check')} Send to ${n} ${n === 1 ? 'person' : 'people'}`; $('#cmGo', s).disabled = !n;
+    const sub = $('#cmS', s).value, body = $('#cmB', s).value;
+    $('#cmPrev', s).innerHTML = first && (sub || body) ? `<b>Preview for ${esc(first.name)}</b><br><b>${esc(fillName(sub, first))}</b><br>${esc(fillName(body, first)).replace(/\n/g, '<br>')}` : 'A preview appears here as you type.';
+    try { localStorage.setItem(DRAFT, JSON.stringify({ s: sub, b: body })); } catch (e) {}
+  };
+  s.addEventListener('input', paint); s.addEventListener('change', paint); paint();
+  const all = $('#cmAll', s); if (all) { all.onclick = () => { $$('[data-to]', s).forEach((c) => { c.checked = true; }); paint(); }; $('#cmNone', s).onclick = () => { $$('[data-to]', s).forEach((c) => { c.checked = false; }); paint(); }; }
+  $('#cmX', s).onclick = closeSheet; $('#cmCancel', s).onclick = closeSheet;
+  let armed = false;
+  $('#cmGo', s).onclick = async () => {
+    const to = chosen(), subject = $('#cmS', s).value.trim(), body = $('#cmB', s).value.trim(); const err = $('#cmErr', s); err.textContent = '';
+    if (!subject || !body) { err.textContent = 'Add a subject and a message.'; return; }
+    const b = $('#cmGo', s);
+    if (!armed) { armed = true; b.innerHTML = `${icon('check')} Tap again to send ${to.length} ${to.length === 1 ? 'email' : 'emails'}`; setTimeout(() => { armed = false; if (document.contains(b)) paint(); }, 5000); return; }
+    b.disabled = true; b.textContent = 'Sending…';
+    try { const r = await call('mail', S.token, { subject, body, ids: to }); try { localStorage.removeItem(DRAFT); } catch (e) {} closeSheet();
+      toast(`Sent ${r.sent} ${r.sent === 1 ? 'email' : 'emails'}.${r.failed && r.failed.length ? ' Not sent: ' + r.failed.join(', ') + '.' : ''} ${r.remaining} left today.`, null, 7000); }
+    catch (x) { err.textContent = x.message; armed = false; paint(); }
+  };
+}
+function emailList(root) {
+  const box = $('#emList', root); if (!box || !members) return;
+  const list = members.filter((m) => m.email); const addrs = list.map((m) => m.email);
+  $('#emCount', box).textContent = `${list.length} of ${members.length}`;
+  $('#emWrite', box).onclick = () => composer(list.map((m) => m.id));
+  $('#emNote', box).textContent = list.length ? '' : 'No one has added an email yet. Everyone is asked once in the app, and can add it under Me.';
+  $('#emCopy', box).onclick = () => { if (!addrs.length) { toast('No email addresses yet.'); return; } copyText(addrs.join(', ')); };
+  $('#emCsv', box).onclick = () => { if (!list.length) { toast('No email addresses yet.'); return; } const q2 = (x) => '"' + String(x).replace(/"/g, '""') + '"'; download(`new-creation-email-list-${todayISO()}.csv`, 'name,email\n' + list.map((m) => q2(m.name) + ',' + q2(m.email)).join('\n'), 'text/csv'); };
 }
 function memberSheet(m, root) {
   const msg = catchUpMsg(m);
-  const s = sheet(`<div class="row"><span class="avatar" aria-hidden="true">${esc(m.name.charAt(0))}</span><div><h3>${esc(m.name)}</h3><p class="small muted">+${esc(m.phone)}</p></div></div>
+  const s = sheet(`<div class="row"><span class="avatar" aria-hidden="true">${esc(m.name.charAt(0))}</span><div><h3>${esc(m.name)}</h3><p class="small muted">+${esc(m.phone)}${m.email ? ` · ${esc(m.email)}` : ''}</p></div></div>
     <dl class="kv" style="margin-top:12px"><dt>Joined</dt><dd>${fmtDate(m.joined, { day: 'numeric', month: 'long', year: 'numeric' })}</dd><dt>Progress</dt><dd>${m.ch} chapters · ${esc(STATUS[m.status] || m.label)}</dd>
       <dt>Last read</dt><dd>${m.lastReadDate ? fmtDate(m.lastReadDate) : 'Not yet'}</dd><dt>Last seen</dt><dd>${m.lastSeen ? fmtDate(m.lastSeen) : 'Never'}</dd><dt>Streak</dt><dd>${m.streak || 0} days</dd>${m.nudged ? `<dt>Last encouraged</dt><dd>${fmtDate(m.nudged)}</dd>` : ''}</dl>
     <label class="field" style="margin-top:12px">Message<textarea class="input" id="mmsg" rows="5">${esc(msg)}</textarea></label>
-    <div class="btns"><a class="btn primary" id="mwa" href="${esc(waLink(msg, m.phone))}" target="_blank" rel="noopener">${icon('chat')} Message on WhatsApp</a></div>
+    <div class="btns"><a class="btn primary" id="mwa" href="${esc(waLink(msg, m.phone))}" target="_blank" rel="noopener">${icon('chat')} Message on WhatsApp</a>${m.email ? `<button class="btn" id="mmail">${icon('note')} Email ${esc(m.name.split(' ')[0])}</button>` : ''}</div>
     <div class="btns" style="margin-top:10px"><button class="btn" id="mpin">${icon('lock')} Reset PIN</button><button class="btn danger" id="mrem">${icon('trash')} Remove member</button></div>
     <p class="small faint">Resetting a PIN signs them out and keeps all their reading history.</p>`, { label: m.name });
   $('#mmsg', s).oninput = (e) => { $('#mwa', s).href = waLink(e.target.value, m.phone); };
+  const mm = $('#mmail', s); if (mm) mm.onclick = () => composer([m.id]);
   $('#mwa', s).addEventListener('click', () => call('markNudged', S.token, m.id, S.data.challenge.id).catch(() => {}));
   $('#mpin', s).onclick = async () => { const b = $('#mpin', s); if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tap again to reset the PIN'; return; } b.disabled = true;
     try { const r = await call('resetPin', S.token, m.id); const first = r.name.split(' ')[0]; const txt = `Hi ${first}, your New Creation PIN has been reset. Your new PIN is ${r.pin}.\n\nSign in with your WhatsApp number and this PIN, then change it under Me if you like:\n${appLink()}`;
