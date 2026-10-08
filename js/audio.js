@@ -5,16 +5,18 @@
 import { $, $$, esc, icon, toast, sheet, closeSheet, store } from './util.js';
 import { META, TRANSLATIONS, loadChapter, bookName, chapterCount } from './bible.js';
 import * as pad from './pad.js';
+import * as voice from './preach.js';
 
 const AB = ['Gen', 'Exo', 'Lev', 'Num', 'Deu', 'Jos', 'Jdg', 'Rut', '1Sa', '2Sa', '1Ki', '2Ki', '1Ch', '2Ch', 'Ezr', 'Neh', 'Est', 'Job', 'Psa', 'Pro', 'Ecc', 'Sng', 'Isa', 'Jer', 'Lam', 'Ezk', 'Dan', 'Hos', 'Jol', 'Amo', 'Oba', 'Jon', 'Mic', 'Nam', 'Hab', 'Zep', 'Hag', 'Zec', 'Mal', 'Mat', 'Mrk', 'Luk', 'Jhn', 'Act', 'Rom', '1Co', '2Co', 'Gal', 'Eph', 'Php', 'Col', '1Th', '2Th', '1Ti', '2Ti', 'Tts', 'Phm', 'Heb', 'Jas', '1Pe', '2Pe', '1Jn', '2Jn', '3Jn', 'Jud', 'Rev'];
 export const NARRATORS = {
   souer: { name: 'Bob Souer', desc: 'Warm, steady and pastoral. A good first choice.', dir: 'souer', suf: '' },
   hays: { name: 'Barry Hays', desc: 'Deep and measured, with a preacher’s weight.', dir: 'hays', suf: '_H' },
   gilbert: { name: 'Jordan Gilbert', desc: 'Clear and expressive, a little brighter.', dir: 'gilbert', suf: '_G' },
-  device: { name: 'Phone voice', desc: 'Reads the translation on screen, also offline. Less natural.', device: true },
+  preacher: { name: 'Preacher voice', desc: 'Your phone’s voice, read with a preacher’s rhythm: it builds, lifts, pauses and lands. Every word lights up as it is spoken. Works offline.', device: true, preach: true },
+  device: { name: 'Phone voice', desc: 'Reads the translation on screen in an even voice, word by word. Works offline.', device: true },
 };
 export const RATES = [0.75, 0.9, 1, 1.15, 1.3, 1.5];
-const SRC_NOTE = 'Berean Standard Bible audio by Bob Souer, Barry Hays and Jordan Gilbert, public domain (CC0), via openbible.com. The verse highlight is timed from the pauses in each recording, so it can be a moment early or late. The worship music is generated on your phone.';
+const SRC_NOTE = 'Berean Standard Bible audio by Bob Souer, Barry Hays and Jordan Gilbert, public domain (CC0), via openbible.com. With the human narrators the verse is highlighted, timed from the pauses in each recording. With the Preacher voice and Phone voice each word is highlighted as it is spoken, and they read exactly the translation on screen. The worship music is generated on your phone.';
 
 export const audioUrl = (narr, b, c) => { const n = NARRATORS[narr], i = META.codes.indexOf(b); return `https://openbible.com/audio/${n.dir}/BSB_${String(i + 1).padStart(2, '0')}_${AB[i]}_${String(c).padStart(3, '0')}${n.suf}.mp3`; };
 const prefs = () => ({ narr: 'souer', rate: 1, cont: true, pad: true, padLevel: 0.5, follow: true, ...store.json('nc.listen', {}) });
@@ -90,7 +92,7 @@ export function setRate(r) { savePrefs({ rate: r }); if (P.el) P.el.playbackRate
 // ---------- engines ----------
 function stopEngines() {
   if (P.el) { P.el.pause(); P.el.removeAttribute('src'); P.el.load(); }
-  if (window.speechSynthesis) { P.utter = null; speechSynthesis.cancel(); }
+  if (window.speechSynthesis) { P.utter = null; voice.cancel(); }
   markVerse(0);
 }
 async function playCurrent(startAt = 0) {
@@ -146,23 +148,35 @@ async function speakChapter(it) {
   speakFrom(0, true);
 }
 function speakFrom(v, announce = false) {
-  speechSynthesis.cancel(); P.verse = v; const it = cur(); if (!it || !P.verses) return;
-  const voice = bestVoice(), rate = prefs().rate;
-  const say = (text, pauseAfter, onDone) => {
-    const u = new SpeechSynthesisUtterance(text); if (voice) u.voice = voice; u.lang = voice ? voice.lang : 'en-GB';
-    u.rate = 0.9 * rate; u.pitch = 0.92; P.utter = u;
-    u.onend = () => { if (P.utter !== u) return; setTimeout(() => { if (P.utter === u && P.playing) onDone(); }, pauseAfter); };
-    speechSynthesis.speak(u);
+  voice.cancel(); P.verse = v; const it = cur(); if (!it || !P.verses) return;
+  const pr = prefs(); const mode = NARRATORS[pr.narr].preach ? 'preach' : 'plain'; const vc = voice.pickVoice(mode === 'preach');
+  const say = (text, pauseAfter, onDone, onWord = null) => {
+    const h = { done: false }; P.utter = h;
+    voice.speak(text, { mode, rate: pr.rate, voice: vc, onWord, onDone: () => { if (P.utter !== h) return; setTimeout(() => { if (P.utter === h && P.playing) onDone(); }, pauseAfter); } });
   };
   const step = (i) => {
     if (i >= P.verses.length) { P.utter = null; chapterDone(); return; }
     P.verse = i; markVerse(i + 1);
-    // Longer pauses at paragraph-like endings give the reading a spoken, unhurried rhythm.
-    const t = P.verses[i]; const pause = /[.?!]["”’']?$/.test(t) ? 650 : 380;
-    say(t, pause / rate, () => step(i + 1));
+    const t = P.verses[i]; const pause = mode === 'preach' ? 300 : (/[.?!]["”’']?$/.test(t) ? 650 : 380);
+    say(t, pause / pr.rate, () => step(i + 1), (w) => markWord(i + 1, w));
   };
   P.playing = true; emit();
   if (announce && v === 0) say(`${bookName(it.b)}, chapter ${it.c}.`, 700, () => step(0)); else step(v);
+}
+// Light the word being spoken inside the verse on screen (phone voices read the on-screen text, so the words match).
+function markWord(v, w) {
+  const it = cur(); if (!it || !location.hash.startsWith(`#/bible/${it.b}/${it.c}`)) return;
+  const el = $('#v' + v); if (!el) return; if (!el.classList.contains('speaking')) markVerse(v, true);
+  ensureWordCss(); voice.lightWord(voice.wrapWords(el), w);
+}
+function ensureWordCss() {
+  if (document.getElementById('ncWordCss')) return;
+  document.head.insertAdjacentHTML('beforeend', `<style id="ncWordCss">
+.scripture.following .verse.speaking .w{transition:background-color .12s ease,color .12s ease;border-radius:4px}
+.scripture.following .verse.speaking .w-done{opacity:.92}
+.scripture.following .verse.speaking .w-now{background:var(--hl-edge);color:#fff;box-shadow:0 0 0 2px var(--hl-edge);border-radius:4px}
+:root[data-theme="dark"] .scripture.following .verse.speaking .w-now{color:#1A1405}
+@media (prefers-reduced-motion:reduce){.scripture.following .verse.speaking .w{transition:none}}</style>`);
 }
 function markVerse(v, force = false) {
   const it = cur(); const here = !!(v && it && location.hash.startsWith(`#/bible/${it.b}/${it.c}`));
