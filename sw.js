@@ -1,7 +1,7 @@
 // New Creation service worker: fast start, offline reading, safe updates.
-const VERSION = 'nc-2026-10-08-1';
+const VERSION = 'nc-2026-10-08-2';
 const SHELL = ['./', 'index.html', 'config.js', 'css/app.css', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png',
-  'js/app.js', 'js/util.js', 'js/api.js', 'js/bible.js', 'js/state.js', 'js/morph.js', 'js/audio.js', 'js/pad.js', 'js/backontrack.js',
+  'js/app.js', 'js/util.js', 'js/api.js', 'js/bible.js', 'js/state.js', 'js/morph.js', 'js/audio.js', 'js/preach.js', 'js/pad.js', 'js/backontrack.js',
   'js/views/today.js', 'js/views/bible.js', 'js/views/original.js', 'js/views/circle.js', 'js/views/journey.js', 'js/views/me.js', 'js/views/leader.js', 'js/views/teach.js', 'js/views/teach-prompt.js', 'js/views/teach-lessons.js', 'js/views/teach-slides.js', 'js/views/privacy.js', 'js/views/auth.js', 'js/views/listen-help.js',
   'data/meta.json', 'data/plans.json', 'data/durations.json'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
