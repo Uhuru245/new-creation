@@ -50,7 +50,7 @@ function makeServices(db, save) {
     PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => db.props[k] ?? null, setProperty: (k, v) => { db.props[k] = String(v); save(); }, deleteProperty: (k) => { delete db.props[k]; save(); } }) },
     CacheService: { getScriptCache: () => ({ get: (k) => db.cache[k] ?? null, put: (k, v) => { db.cache[k] = v; }, remove: (k) => { delete db.cache[k]; }, removeAll: (ks) => ks.forEach((k) => delete db.cache[k]) }) },
     LockService: { getScriptLock: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }) },
-    MailApp: { sendEmail: (to, subject, body) => { db.outbox.push({ time: new Date().toISOString(), to, subject, body }); save(); } },
+    MailApp: { sendEmail: (to, subject, body) => { if (to && typeof to === 'object') ({ to, subject, body } = to); db.outbox.push({ time: new Date().toISOString(), to, subject, body }); save(); }, getRemainingDailyQuota: () => 100 },
     Session: { getEffectiveUser: () => ({ getEmail: () => 'leader@example.org' }) },
     Logger: { log() {} },
     ScriptApp: { getService: () => ({ getUrl: () => location.origin + location.pathname }), getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ atHour: () => ({ everyDays: () => ({ inTimezone: () => ({ create() {} }) }) }) }) }), deleteTrigger() {} },

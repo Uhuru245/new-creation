@@ -51,6 +51,7 @@ export async function render() {
   main.innerHTML = `<div class="view">${html}</div>`;
   current = { name, mod: m };
   m.mount && m.mount(main, r);
+  if (name === 'today' && S.fresh) import('./emailask.js').then((x) => x.maybeAsk()).catch(() => {});
   document.title = (m.title ? (typeof m.title === 'function' ? m.title(r) : m.title) + ' · ' : '') + 'New Creation';
   if (!same && !r.q.get('v')) { window.scrollTo(0, 0); main.focus({ preventScroll: true }); }
 }
