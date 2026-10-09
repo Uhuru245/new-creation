@@ -69,6 +69,9 @@ function botCard() {
   const pct = Math.round(st.caught / st.total * 100); const left = st.keys.length - st.doneToday;
   return `<section class="card bot" aria-labelledby="botT"><div class="card-head"><p class="eyebrow">Back on track · day ${st.dayNo} of ${st.plan.days}</p><button class="link" id="botChange">Change</button></div>
     <h3 id="botT">${left > 0 ? `Today's catch-up: ${left === 1 ? '1 chapter' : `${left} chapters`}` : "Today's catch-up is done"}</h3>
+    ${st.joiner ? (st.plan.auto && st.dayNo <= 2
+      ? `<p class="small">Welcome! You joined on day ${st.earlier + 1}, so we've made you a gentle plan to read the chapters from the first ${st.earlier} day${st.earlier === 1 ? '' : 's'} by ${fmtDate(st.plan.until, { day: 'numeric', month: 'long' })}. It's optional and never counts against you: change the pace or stop it any time.</p>`
+      : `<p class="faint small">Includes the ${st.earlier} day${st.earlier === 1 ? '' : 's'} before you joined. Optional.</p>`) : ''}
     <p class="muted small">${left > 0 ? `About ${BOT.minutesFor(st.keys.filter((k) => !keyRead(k)))} minutes, on top of today's reading.` : `${st.missed} to go, finishing by ${fmtDate(st.plan.until, { weekday: 'long', day: 'numeric', month: 'long' })}.`}</p>
     <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Caught up ${st.caught} of ${st.total} chapters"><span style="width:${pct}%"></span></div>
     <p class="faint small">Caught up ${st.caught} of ${st.total}</p>
@@ -78,10 +81,11 @@ function botCard() {
 async function botSheet() {
   await BOT.loadDurations(); const opts = BOT.options(); const n = BOT.missedKeys().length;
   const s = sheet(`<div class="card-head"><h3>Your back-on-track plan</h3><button class="icon-btn" id="bsClose" aria-label="Close">${icon('close')}</button></div>
+    ${BOT.currentScope() === 'all' && BOT.lateJoiner() ? `<p class="small muted">This includes the ${BOT.earlierDays()} day${BOT.earlierDays() === 1 ? '' : 's'} before you joined. Those chapters are optional and never count against you.</p>` : ''}
     <p class="muted">You have ${n === 1 ? '1 chapter' : `${n} chapters`} to catch up (about ${BOT.minutesFor(BOT.missedKeys())} minutes in all). How quickly would you like to catch up? Keep reading today's chapters as normal; these come on top.</p>
     <div class="stack-sm" style="margin-top:12px" role="group" aria-label="Choose a pace">${opts.map((o, i) => `<button class="itemlink" data-opt="${i}"><span class="grow"><b>${esc(o.label)}${o.recommended ? ' <span class="pill ok">Suggested</span>' : ''}</b><span>${o.per} extra chapter${o.per === 1 ? '' : 's'} a day · about ${o.minutes} min${o.heavy ? ' · a big push' : ''}</span></span>${icon('next')}</button>`).join('')}</div>
     <p class="faint small" style="margin-top:12px">Only you can see this plan. Your leader still sees your usual progress, not the plan. You can change or stop it at any time.</p>
-    ${BOT.plan() ? '<button class="btn danger" id="bsStop" style="margin-top:8px">Stop my plan</button>' : ''}`, { label: 'Back-on-track plan' });
+    ${BOT.plan() ? `<button class="btn danger" id="bsStop" style="margin-top:8px">${BOT.lateJoiner() && BOT.currentScope() === 'all' ? "No thanks, I'll just read from today" : 'Stop my plan'}</button>` : ''}`, { label: 'Back-on-track plan' });
   $('#bsClose', s).onclick = closeSheet;
   $$('[data-opt]', s).forEach((b) => b.onclick = async () => { const o = opts[Number(b.dataset.opt)]; closeSheet(); await BOT.start(o); toast(`Plan set: about ${o.per} extra a day until ${fmtDate(o.until, { weekday: 'long', day: 'numeric', month: 'long' })}.`); go('#/today'); });
   const stop = $('#bsStop', s); if (stop) stop.onclick = async () => { closeSheet(); await BOT.cancel(); toast('Plan stopped. Every chapter you read still counts.'); go('#/today'); };

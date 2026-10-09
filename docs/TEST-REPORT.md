@@ -134,3 +134,15 @@ For members who have missed chapters since they joined. Chapters before a late j
 | Full browser journey suite | 80 passed, 0 failed |
 
 Fixed in the demo: the sample challenge's start date now moves with today's date, so a new demo member starts on the right day.
+
+## Back button and late-joiner plan (2026-10-09)
+
+- A "Back" button now sits at the top left of every page you can go back from. It returns to the previous page you were on (labelled, for example, "Back to Today"), which matters most in the installed phone app, where there is no browser back button. If a page was opened straight from a link, Back goes up to its natural parent: a word study goes back to its chapter, Privacy and Leader go to Me, everything else goes to Today. It is hidden when there is nowhere to go back to.
+- Late joiners now get a back-on-track plan automatically, covering the chapters from the days before they joined, at the suggested gentle pace. The card welcomes them, says the plan is optional and never counts against them, and offers "Change" or "No thanks, I'll just read from today". Stopping is remembered, so the plan is not created again.
+
+| Check | Result |
+|---|---|
+| Back button and late-joiner journeys, including accessibility | 15 passed |
+| Back-on-track plan journey | 11 passed |
+| Full browser journey suite | 80 passed, 0 failed |
+| Listening and highlighting | 7 passed |
