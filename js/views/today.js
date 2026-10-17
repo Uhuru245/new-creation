@@ -8,6 +8,8 @@ import { listen } from '../audio.js';
 import { offerMarkRead } from './listen-help.js';
 import * as BOT from '../backontrack.js';
 import { sheet, closeSheet } from '../util.js';
+import * as WB from '../words.js';
+import { wordCard, summaryHtml, bindWordCard } from './words.js';
 
 export const title = 'Today';
 // The GOSPEL discussion framework used since the first version of the app:
@@ -126,13 +128,30 @@ export async function render() {
     <p class="muted small">Read today's chapters broadly, then slow down over this passage.</p>
     <div class="btns">${deepRef ? `<a class="btn" href="#/bible/${deepRef.b}/${deepRef.c}${deepRef.v ? '?v=' + deepRef.v : ''}">${icon('bible')} Open the passage</a><a class="btn" href="#/original/${deepRef.b}/${deepRef.c}/${deepRef.v || 1}">${icon('original')} Original text</a>` : ''}</div></section>` : ''}
   ${studyCard(D.n)}
+  <div id="wordSlot">${wordSlot()}</div>
   ${bookIntros(keys)}
   <section class="card" aria-labelledby="qT"><p class="eyebrow">Today's question${theme ? ` · ${theme[0]} for ${theme[1]}` : ''}</p><p class="serif" id="qT" style="font-size:20px;line-height:1.45">${esc(dayQuestion(D))}</p>
     <a class="btn primary" href="#/circle?compose=reflection&day=${D.n}">${icon('chat')} Respond in the Circle</a></section>
   ${(d.cheers || []).length ? `<section class="card"><h3>Encouragement for you</h3>${d.cheers.map((x) => `<p><b>${esc(x.from)}</b>: ${esc(x.message)}</p>`).join('')}</section>` : ''}`;
 }
 
+// ---------- The Word Behind the Word ----------
+function wordSlot() {
+  if (S.data.challenge.plan !== 'bible93') return '';
+  const W = WB.cached(); if (!W) return '';
+  const t = WB.todayWord(W);
+  const head = `<section class="card" aria-labelledby="wbT"><div class="card-head"><h3 id="wbT">The Word Behind the Word</h3><a class="link" href="#/words">Open</a></div>${summaryHtml()}
+    <div class="btns"><a class="btn sm" href="#/words/alphabet?l=he">Alphabet</a><a class="btn sm" href="#/words/practice">Practice</a><a class="btn sm" href="#/teacher">${icon('chat')} Ask the Teacher</a></div></section>`;
+  return (t ? wordCard(t.w, { today: t.today, compact: true }) : '') + head;
+}
+function paintWords(root) {
+  const slot = $('#wordSlot', root); if (!slot) return; WB.wordFonts(); slot.innerHTML = wordSlot();
+  const W = WB.cached(); if (W) bindWordCard(slot, W.words, () => paintWords(root));
+}
+
 export function mount(root) {
+  paintWords(root);
+  if (S.data.challenge.plan === 'bible93' && (!WB.cached() || WB.stale())) WB.loadWords().then(() => { if ($('#wordSlot', root) && document.contains(root)) paintWords(root); }).catch(() => {});
   ['#botStart', '#botChange'].forEach((id) => { const b = $(id, root); if (b) b.onclick = botSheet; });
   const bc = $('#botClear', root); if (bc) bc.onclick = async () => { await BOT.cancel(); go('#/today'); };
   const bl = $('#botListen', root); if (bl) bl.onclick = () => { const st = BOT.status(); const ks = st.keys.filter((k) => !keyRead(k));

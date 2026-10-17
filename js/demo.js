@@ -57,6 +57,11 @@ function makeServices(db, save) {
     Utilities: { formatDate: fmt, computeDigest: (a, s) => sha256Bytes(s), base64Encode: (bytes) => btoa(String.fromCharCode(...bytes.map((b) => b & 255))), getUuid: () => crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now(), DigestAlgorithm: { SHA_256: 1 } },
     ContentService: { MimeType: { JSON: 'json', ICAL: 'ical' }, createTextOutput: (t) => ({ t, setMimeType() { return this; }, downloadAsFile() { return this; } }) },
     HtmlService: {},
+    // The demo never contacts the real teacher: it answers with a clearly labelled sample reply.
+    UrlFetchApp: { fetch: (url, o) => { const req = JSON.parse(o.payload); const last = req.messages[req.messages.length - 1].content;
+      const n = req.messages.filter((m) => m.role === 'user').length;
+      const text = /fail-demo/i.test(last) ? null : `This is a sample reply from the demonstration teacher (the real teacher answers when the app is connected). You asked: "${String(last).slice(0, 80)}". This is message ${n} in this conversation, so I can see ${n - 1} earlier question${n === 2 ? '' : 's'}. For example, חֶסֶד (chesed) means loyal, covenant love. What would you like to look at next?`;
+      return { getResponseCode: () => (text ? 200 : 500), getContentText: () => JSON.stringify(text ? { content: [{ type: 'text', text }], stop_reason: 'end_turn' } : { type: 'error', error: { message: 'sample failure' } }) }; } },
   };
 }
 
@@ -78,7 +83,7 @@ export async function createDemo() {
   const svc = makeServices(db, save);
   const names = Object.keys(svc);
   // eslint-disable-next-line no-new-func
-  const server = new Function(...names, src + '\n;return { doPost, setup, setLeaderByPhone, apiJoin, apiLogin, apiTick, apiPost2, apiCheer, apiPray2, readMembers_, writeMember_ };')(...names.map((n) => svc[n]));
+  const server = new Function(...names, src + '\n;return { doPost, setup, setLeaderByPhone, seedWordStudies, apiJoin, apiLogin, apiTick, apiPost2, apiCheer, apiPray2, readMembers_, writeMember_ };')(...names.map((n) => svc[n]));
   const call = (fn, args) => { const r = JSON.parse(server.doPost({ postData: { contents: JSON.stringify({ fn, args, env: 'prod' }) } }).t); if (!r.ok) throw new Error(r.error); return r.data; };
   if (fresh) { seed(server, db, svc, call); seeding = false; save(); }
   return { call, outbox: () => db.outbox, reset: () => { localStorage.removeItem(KEY); location.reload(); } };
@@ -104,6 +109,9 @@ function seed(server, db, svc, call) {
   call('post', [tokens[2], { kind: 'question', text: 'Sample post: Why were the cities of refuge spread across the land?', clientId: 'demo3' }]);
   call('post', [tokens[4], { kind: 'praise', text: 'Sample post: I finished my first full week of reading!', clientId: 'demo4' }]);
   call('cheer', [tokens[1], server.readMembers_()[0].id, 'Keep going, you\'re doing so well!']);
+  // Sample word studies: the starter words, with those up to the demo's day 12 approved.
+  server.seedWordStudies(); const ws = db.books[sheetId].sheets.WordStudies; ws.slice(1).forEach((r) => { if (Number(r[0]) <= 12) r[9] = 'Approved'; });
+  db.props.CLAUDE_API_KEY = 'demo-not-a-real-key';
   db.props.STUDY_SHEET_ID_DEMO = '1';
   db.outbox = [];
   try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {}

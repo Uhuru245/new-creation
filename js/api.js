@@ -38,11 +38,17 @@ export async function call(fn, ...args) {
   catch (e) { if (e.network) setStatus(navigator.onLine === false ? 'offline' : 'error'); const f = FRIENDLY.find(([re]) => re.test(e.message)); if (f && !e.network) e.message = f[1]; throw e; }
 }
 
+// Same as call(), but waits longer (the teacher can take a little while to answer).
+export async function callLong(fn, ...args) {
+  try { const r = await rawCall(fn, args, { timeout: 70000 }); setStatus(queue().length ? 'pending' : 'synced'); return r; }
+  catch (e) { if (e.network) setStatus(navigator.onLine === false ? 'offline' : 'error'); throw e; }
+}
+
 // ---------- offline queue (only idempotent changes: ticks, private items, settings) ----------
 const QKEY = 'queue';
 const queue = () => store.pget(QKEY, []);
 const saveQueue = (q) => store.pset(QKEY, q);
-const QUEUEABLE = new Set(['tick', 'privateSet', 'settings']);
+const QUEUEABLE = new Set(['tick', 'privateSet', 'settings', 'wordLearn']);
 let flushing = false;
 
 export async function send(fn, ...args) {

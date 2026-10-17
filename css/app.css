@@ -353,3 +353,55 @@ body.has-player .toast{bottom:calc(var(--nav-h) + 92px + env(safe-area-inset-bot
 .back-btn:hover{border-color:var(--line-2)}
 .back-btn:focus-visible{outline:3px solid var(--gold-2);outline-offset:2px}
 @media (max-width:420px){.back-btn:not([hidden])~.brand span{display:none}}
+
+/* ---------- The Word Behind the Word ---------- */
+:root{--greek-w:"GFS Didot","Noto Serif","Gentium Plus","Times New Roman",serif}
+.wscript{font-weight:400;unicode-bidi:isolate}
+.wscript.he{font-family:var(--hebrew);direction:rtl;line-height:1.7}
+.wscript.grc{font-family:var(--greek-w);line-height:1.5}
+.wscript.big{font-size:44px;line-height:1.35;margin:0;color:var(--ink)}
+.wscript.huge{font-size:72px;line-height:1.3;margin:6px 0;text-align:center}
+.wordcard .translit{margin:-6px 0 0;font-size:18px;color:var(--ink-2)}
+.wordcard .wscript.big.he{text-align:right}
+.stats.four{grid-template-columns:repeat(4,1fr)} .stats.four .stat b small{font-size:12px;font-weight:600;color:var(--ink-3)}
+@media (max-width:420px){.stats.four{grid-template-columns:repeat(2,1fr)}}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:var(--r);background:var(--surface);border:1px solid var(--line);color:var(--ink);text-decoration:none;box-shadow:var(--shadow)}
+.tile .ico{width:26px;height:26px;color:var(--forest)} .tile span{font-size:13px;color:var(--ink-2)}
+.letters{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.letter{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:14px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);cursor:pointer;direction:ltr}
+.letter .wscript{font-size:34px;line-height:1.3} .letter b{font-size:13px} .letter small{font-size:12px;color:var(--ink-3)}
+.letter.known{background:var(--forest-soft);border-color:color-mix(in srgb,var(--forest) 35%,transparent)}
+.finals{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px} .final{display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:14px;background:var(--surface-2)} .final b{flex:1;font-size:14px} .final>span{display:flex;flex-direction:column;align-items:center} .final .wscript{font-size:30px;line-height:1.3} .final small{font-size:11.5px;color:var(--ink-3)}
+.vowels{display:grid;grid-template-columns:72px 1fr;gap:8px 12px;align-items:center;margin:0} .vowels dt{text-align:center;margin:0} .vowels dt .wscript{font-size:30px} .vowels dd{margin:0;font-size:14px}
+.flash{position:relative;width:100%;min-height:230px;border:0;background:none;perspective:900px;cursor:pointer;padding:0;color:var(--ink)}
+.flash .face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);backface-visibility:hidden;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.flash .back{transform:rotateY(180deg)} .flash.flipped .front{transform:rotateY(180deg)} .flash.flipped .back{transform:rotateY(360deg)}
+.flash small{color:var(--ink-3)} .flash .back .wscript{font-size:30px} .flash .back b{font-size:16px;text-align:center}
+@media (prefers-reduced-motion:reduce){.flash .face{transition:none}}
+.center{text-align:center;align-items:center}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px} @media (max-width:380px){.opts{grid-template-columns:1fr}}
+.opt{min-height:56px;padding:10px 12px;border-radius:14px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font-weight:600;font-size:15px;cursor:pointer}
+.opt.right{background:var(--forest-soft);border-color:var(--forest);color:var(--forest)} .opt.wrong{border-color:var(--danger);color:var(--danger)}
+.ok-text{color:var(--forest);font-weight:600}
+.teacher{display:flex;flex-direction:column;gap:14px}
+.ctxline{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:15px}
+.chat{display:flex;flex-direction:column;gap:10px;min-height:120px}
+.msg{display:flex;flex-direction:column;gap:4px;max-width:92%}
+.msg .body{padding:11px 14px;border-radius:18px;line-height:1.55;font-size:15.5px}
+.msg .body p{margin:0 0 8px} .msg .body p:last-child{margin:0} .msg .body ul,.msg .body ol{margin:4px 0 8px;padding-left:20px}
+.msg .wscript.he{font-size:1.25em} .msg .wscript.grc{font-size:1.12em}
+.msg.me{align-self:flex-end} .msg.me .body{background:var(--forest);color:var(--forest-ink);border-bottom-right-radius:6px}
+.msg.teacher{align-self:flex-start} .msg.teacher .body{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:6px;box-shadow:var(--shadow)}
+.msg.note{align-self:center;max-width:100%} .msg.note .body{background:var(--gold-soft);color:var(--ink);font-size:14px}
+.readaloud{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);font-weight:600;font-size:13px;cursor:pointer}
+.readaloud[aria-pressed="true"]{background:var(--forest-soft);color:var(--forest);border-color:var(--forest)}
+.ico.sm{width:16px;height:16px}
+.typing .body{display:flex;gap:5px;align-items:center;min-height:42px} .typing .body span:not(.sr){width:7px;height:7px;border-radius:50%;background:var(--ink-3);animation:blink 1.2s infinite} .typing .body span:nth-child(2){animation-delay:.2s} .typing .body span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.composer{display:flex;align-items:flex-end;gap:8px;position:sticky;bottom:calc(var(--nav-h) + 8px + env(safe-area-inset-bottom));background:var(--bg);padding:6px 0;z-index:5}
+.composer textarea{flex:1;min-height:48px;max-height:160px;resize:vertical}
+.composer .btn{min-width:48px;padding:0 14px} .composer .icon-btn{border:1px solid var(--line-2);background:var(--surface)}
+.composer .icon-btn.live{background:var(--danger);color:#fff;border-color:var(--danger)}
+@media (min-width:900px){.composer{bottom:8px}}
+.wordcard a.link{display:inline-flex;align-items:center;gap:4px;align-self:flex-start}

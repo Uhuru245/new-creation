@@ -678,7 +678,7 @@ function apiDeletePost2(token, id) {
 
 // Private items (bookmarks, highlights, notes, word studies): only ever returned to their owner.
 const XCOLS = ['memberId','kind','key','data','updated'];
-const XKINDS = ['bookmark','highlight','note','word','pos'];
+const XKINDS = ['bookmark','highlight','note','word','pos','lang'];
 function apiPrivate(token) {
   const me = byToken_(token);
   return sheet_('Private', XCOLS).getDataRange().getValues().slice(1).filter(function(r){ return String(r[0]) === me.id; })
@@ -722,7 +722,9 @@ function apiExport(token) {
     progress: list.map(function(c){ const p = progressOf_(me, c, rows); return p && (p.main || p._row) ? { challenge: c.name, plan: c.planName, start: c.start, chaptersRead: p.ch, streak: p.streak, bits: p.bits } : null; }).filter(Boolean),
     posts: sheet_('Reflections', RCOLS).getDataRange().getValues().slice(1).filter(function(r){ return String(r[2]) === me.id; }).map(function(r){ const o = postRow_(r, me.id); delete o.iPray; return o; }),
     encouragementsReceived: sheet_('Cheers',['time','fromId','fromName','toId','message']).getDataRange().getValues().slice(1).filter(function(r){ return String(r[3]) === me.id; }).map(function(r){ return { from: String(r[2]), message: String(r[4]), when: String(r[0]) }; }),
-    private: apiPrivate(token)
+    private: apiPrivate(token),
+    wordsLearned: learnedRows_(me.id),
+    teacherConversations: sheet_('TutorChats', TC_COLS).getDataRange().getValues().slice(1).filter(function(r){ return String(r[0]) === me.id; }).map(function(r){ return { conversation: String(r[1]), when: String(r[2]), role: String(r[3]), message: String(r[4]), day: String(r[5]), word: String(r[6]) }; })
   };
 }
 // Permanently removes the member's account, progress, posts, encouragements and private items. Requires their PIN.
@@ -732,7 +734,8 @@ function apiDeleteAccount(token, pin) {
     if (isLeader_(me)) throw new Error('The leader account can\'t be deleted from the app. Hand over leadership first.');
     const del = function(name, cols, col){ const sh = sheet_(name, cols); const v = sh.getDataRange().getValues();
       for (let i = v.length - 1; i >= 1; i--) if (String(v[i][col]) === me.id) sh.deleteRow(i + 1); };
-    del('Progress', PCOLS, 1); del('Private', XCOLS, 0); del('Reflections', RCOLS, 2);
+    del('Progress', PCOLS, 1); del('Private', XCOLS, 0); del('Reflections', RCOLS, 2); del('WordProgress', WP_COLS, 0); del('TutorChats', TC_COLS, 0);
+    PropertiesService.getScriptProperties().deleteProperty((ENV_ === 'test' ? 'TEST_' : '') + 'TUTOR_' + me.id);
     const ch = sheet_('Cheers',['time','fromId','fromName','toId','message']); const cv = ch.getDataRange().getValues();
     for (let i = cv.length - 1; i >= 1; i--) if (String(cv[i][1]) === me.id || String(cv[i][3]) === me.id) ch.deleteRow(i + 1);
     sheet_('Members', COLS).deleteRow(me._row); log_('system', 'account deleted', 'member ' + me.id);
@@ -770,7 +773,7 @@ function apiInviter(by) { try { const m = readMembers_().filter(function(x){ ret
 
 // ---------- the API entry point used by the web app ----------
 function apiMap_() { return {
-  ping: apiPing, join: apiJoin, login: apiLogin, inviter: apiInviter,
+  ping: apiPing, join: apiJoin, login: apiLogin, inviter: apiInviter, track: apiTrack,
   // One round trip instead of two: sign in (or join) and return the app state together.
   loginState: function(phone, pin){ const r = apiLogin(phone, pin); return { token: r.token, state: apiState(r.token, { lite: true }) }; },
   joinState: function(name, phone, pin){ const r = apiJoin(name, phone, pin); return { token: r.token, state: apiState(r.token, { lite: true }) }; },
@@ -780,6 +783,7 @@ function apiMap_() { return {
   exportMe: apiExport, deleteAccount: apiDeleteAccount,
   leader: apiLeader, mail: apiMail, markNudged: apiMarkNudged, remove: apiRemove, resetPin: apiResetPin, approve: apiApprove,
   challenges: apiChallenges, createChallenge: apiCreateChallenge, updateChallenge: apiUpdateChallenge, cancelChallenge: apiCancelChallenge, planPreview: apiPlanPreview,
+  words: apiWords, wordLearn: apiWordLearn, wordApprove: apiWordApprove, teacher: apiTeacher,
   testSetDate: apiTestSetDate
 }; }
 function doPost(e) {
@@ -835,4 +839,264 @@ function setupTest() {
   if (!lead) { apiJoin('Test Leader', '0700000001', '1357'); lead = readMembers_().filter(function(m){ return m.name === 'Test Leader'; })[0]; }
   p.setProperty('TEST_LEADER_ID', lead.id);
   Logger.log('Test sheet: ' + ss.getUrl() + '\nTest leader: 070 000 0001 / PIN 1357\nTEST_ADMIN_KEY is in Script Properties.');
+}
+
+// ===================== www.mret.co.za site activity (anonymous visit counts for the owner) =====================
+// The home page sends small anonymous events here (a page view, which space was chosen, how). No names, numbers,
+// emails or IP addresses are received or stored. Rows go to a separate spreadsheet that only the owner can open.
+const SITE_SHEET_ID = '1F0YEDvU49tnMtBoVcdbBox54tnlyNCeRhULcWJezr7M';
+const SITE_EVENTS = ['view', 'choose', 'open', 'swipe', 'list', 'soon'];
+const SITE_SPACES = ['', 'new-creation', 'smart-agent', 'support', 'coaching'];
+const SITE_HOW = ['', 'drag', 'tap', 'button', 'list', 'arrow', 'swipe'];
+const SITE_DEVICES = ['phone', 'tablet', 'desktop', 'other'];
+function siteBook_() {
+  const ss = SpreadsheetApp.openById(SITE_SHEET_ID), tab = ENV_ === 'test' ? 'Test events' : 'Events';
+  let sh = ss.getSheetByName(tab);
+  if (!sh) {
+    sh = ss.insertSheet(tab); sh.appendRow(['Time (SAST)', 'Date', 'Visitor', 'Visit', 'Event', 'Space', 'How', 'Device', 'Came from', 'Screen']);
+    sh.setFrozenRows(1); sh.getRange('A1:J1').setFontWeight('bold'); sh.getRange('B:B').setNumberFormat('yyyy-mm-dd');
+    if (tab === 'Events') siteSummary_(ss);
+    const s1 = ss.getSheetByName('Sheet1'); if (s1 && s1.getLastRow() === 0) ss.deleteSheet(s1);
+  }
+  return sh;
+}
+function siteSummary_(ss) {
+  const sh = ss.getSheetByName('Dashboard') || ss.insertSheet('Dashboard', 0); sh.clear();
+  const rows = [
+    ['www.mret.co.za: who is using the home page', ''],
+    ['Anonymous counts only. Updates by itself as people visit.', ''],
+    ['', ''],
+    ['Visits today', '=COUNTIFS(Events!E:E,"view",Events!B:B,TODAY())'],
+    ['Visits in the last 7 days', '=COUNTIFS(Events!E:E,"view",Events!B:B,">="&(TODAY()-6))'],
+    ['Visits in the last 30 days', '=COUNTIFS(Events!E:E,"view",Events!B:B,">="&(TODAY()-29))'],
+    ['Different visitors (last 7 days)', '=IFERROR(COUNTUNIQUE(FILTER(Events!C2:C,Events!E2:E="view",Events!B2:B>=TODAY()-6)),0)'],
+    ['Spaces opened (last 30 days)', '=COUNTIFS(Events!E:E,"open",Events!B:B,">="&(TODAY()-29))'],
+    ['', ''],
+    ['Which spaces people open (last 30 days)', ''],
+    ['=IFERROR(QUERY(Events!A:J,"select F, count(E) where E = \'open\' and B >= date \'"&TEXT(TODAY()-29,"yyyy-mm-dd")&"\' group by F order by count(E) desc label F \'Space\', count(E) \'Opens\'",1),"No opens yet")', ''],
+  ];
+  sh.getRange(1, 1, rows.length, 2).setValues(rows);
+  sh.getRange('D1').setValue('Visits per day (last 30 days)');
+  sh.getRange('D2').setFormula('=IFERROR(QUERY(Events!A:J,"select B, count(E) where E = \'view\' and B >= date \'"&TEXT(TODAY()-29,"yyyy-mm-dd")&"\' group by B order by B label B \'Day\', count(E) \'Visits\'",1),"No visits yet")');
+  sh.getRange('G1').setValue('How people open a space');
+  sh.getRange('G2').setFormula('=IFERROR(QUERY(Events!A:J,"select G, count(E) where E = \'open\' group by G order by count(E) desc label G \'How\', count(E) \'Times\'",1),"No opens yet")');
+  sh.getRange('G10').setValue('Devices (visits)');
+  sh.getRange('G11').setFormula('=IFERROR(QUERY(Events!A:J,"select H, count(E) where E = \'view\' group by H order by count(E) desc label H \'Device\', count(E) \'Visits\'",1),"No visits yet")');
+  sh.getRange('G18').setValue('Where visitors came from');
+  sh.getRange('G19').setFormula('=IFERROR(QUERY(Events!A:J,"select I, count(E) where E = \'view\' group by I order by count(E) desc limit 10 label I \'Came from\', count(E) \'Visits\'",1),"No visits yet")');
+  sh.getRange('A20').setValue('Latest activity');
+  sh.getRange('A21').setFormula('=IFERROR(QUERY(Events!A:J,"select A, E, F, G, H where A is not null order by A desc limit 40 label A \'When\', E \'What\', F \'Space\', G \'How\', H \'Device\'",1),"")');
+  sh.getRange('A1').setFontSize(16).setFontWeight('bold'); sh.getRange('A2').setFontColor('#666666');
+  ['A10', 'D1', 'G1', 'G10', 'G18', 'A20'].forEach(function (a) { sh.getRange(a).setFontWeight('bold'); });
+  sh.getRange('A4:A8').setFontWeight('bold'); sh.getRange('B4:B8').setFontSize(14);
+  sh.setColumnWidth(1, 260); sh.setColumnWidth(2, 110); sh.setColumnWidth(4, 120); sh.setColumnWidth(5, 80); sh.setColumnWidth(7, 140);
+  const chart = sh.newChart().asColumnChart().addRange(sh.getRange('D2:E32')).setPosition(4, 4, 0, 0).setOption('title', 'Visits per day').setOption('legend', { position: 'none' }).setOption('colors', ['#C9A04A']).build();
+  sh.insertChart(chart);
+}
+function apiTrack(ev) {
+  ev = ev || {};
+  const pick = function (v, list) { v = String(v == null ? '' : v); return list.indexOf(v) >= 0 ? v : null; };
+  const event = pick(ev.e, SITE_EVENTS); if (!event) throw new Error('Unknown event.');
+  const visitor = String(ev.v || '').replace(/[^a-z0-9]/gi, '').slice(0, 16), visit = String(ev.s || '').replace(/[^a-z0-9]/gi, '').slice(0, 16);
+  if (!visitor) throw new Error('Missing visitor.');
+  // Simple abuse guard: at most 40 events a minute from one browser.
+  const cache = CacheService.getScriptCache(), ck = 'trk:' + ENV_ + ':' + visitor, n = Number(cache.get(ck) || 0);
+  if (n >= 40) return { ok: true, limited: true }; cache.put(ck, String(n + 1), 60);
+  const space = pick(ev.sp, SITE_SPACES) || '', how = pick(ev.h, SITE_HOW) || '', device = pick(ev.d, SITE_DEVICES) || 'other';
+  let from = String(ev.r || '').toLowerCase().replace(/[^a-z0-9.\-]/g, '').slice(0, 60) || 'direct';
+  const screen = String(ev.w || '').replace(/[^0-9x]/g, '').slice(0, 11);
+  const now = new Date(), tz = 'Africa/Johannesburg';
+  const row = [Utilities.formatDate(now, tz, 'yyyy-MM-dd HH:mm:ss'), Utilities.formatDate(now, tz, 'yyyy-MM-dd'), visitor, visit, event, space, how, device, from, screen];
+  withLock_(function () { siteBook_().appendRow(row); });
+  return { ok: true };
+}
+
+
+// ===================== The Word Behind the Word: daily word study, alphabet practice and the teacher =====================
+// Word studies live in the "WordStudies" tab. Only rows with Status "Approved" are shown to members (you see drafts too).
+// The teacher calls the Claude API from here, never from the browser. The key is kept in Script Properties as CLAUDE_API_KEY.
+const WS_COLS = ['Day','Testament','Language','Word','Transliteration','EnglishTranslations','Meaning','VerseRef','StrongsNumber','Status'];
+const WP_COLS = ['MemberID','Day','Word','Learned','DateLearned'];
+const TC_COLS = ['MemberID','ConversationID','Timestamp','Role','Message','Day','Word'];
+const LOGS_COLS = ['Time','Where','Member','Detail'];
+const TEACHER_DAILY_LIMIT = 30;   // teacher messages per member per day
+const TEACHER_MAX_TOKENS = 700;
+const TEACHER_HISTORY = 10;       // earlier messages sent with each question
+const TEACHER_DEFAULT_MODEL = 'claude-sonnet-5-5';
+const TEACHER_DOWN = 'The teacher is unavailable right now. Please try again in a few minutes.';
+const TEACHER_PROMPT = "You are the teacher inside New Creation, a guided Bible reading journey. You help people understand the Bible by explaining the original Hebrew and Greek words behind English translations.\n\nHow you teach:\n- Speak like a patient, warm teacher sitting beside the person, not like a lecturer or a textbook.\n- Explain simply first, then go deeper only if the person wants more.\n- Use everyday examples and comparisons to make ideas clear.\n- Teach in small steps. Keep replies short enough to read on a phone, usually under 180 words.\n- When it helps, end with one question that checks understanding or invites reflection. Ask only one question at a time.\n- If the person seems confused, explain it a different way rather than repeating yourself.\n- When asked to quiz, ask one question at a time, wait for the answer, then explain why it is right or wrong.\n- Encourage the person, but correct mistakes honestly and kindly.\n\nHow you handle the original languages:\n- Always show a word in its original script, then the transliteration, then the meaning. Example: חֶסֶד (chesed), meaning loyal, covenant love.\n- Base meanings on standard scholarly lexicons. Do not invent etymologies or repeat popular myths.\n- When scholars disagree, say so plainly and briefly explain the main views.\n- Show how different English translations handle a word when that helps understanding.\n- Say \"I'm not certain\" when you are not, and suggest checking an interlinear such as Bible Hub or STEP Bible.\n\nHow you handle faith and doctrine:\n- Treat Scripture with reverence and the person's faith with respect.\n- On questions where Christian traditions genuinely differ, explain the main positions fairly rather than taking a side.\n- Point people back to the text itself and encourage them to discuss what they learn with their reading group.\n- If someone shares something personal or painful, respond with care, and encourage them to speak with a trusted person or pastor where appropriate.\n\nStyle rules:\n- No emojis.\n- Plain language; explain any technical term the first time you use it.\n- Never describe the app's creator as the members' leader. If asked, refer to \"the New Creation team\".\n- Stay focused on Bible understanding. If asked about unrelated topics, gently bring the conversation back.\n\nToday's context: Day {day}, reading {passage}, featured word {word} ({language}).";
+const WORD_SEED = [
+  [1, "Old", "Hebrew", "בְּרֵאשִׁית", "bereshit", "In the beginning (BSB, KJV, WEB)", "Made of be- (\"in\") and reshit (\"beginning, first part\"), a word related to rosh, \"head\". It marks the starting point of everything God made, and it became the Hebrew name of the book of Genesis, taken from its first word. Scholars discuss whether to read the verse as \"In the beginning God created\" or \"When God began to create\"; most English Bibles keep the first.", "Genesis 1:1", "H7225", "Draft"],
+  [5, "Old", "Hebrew", "יְהוָה", "YHWH (usually said \"Yahweh\")", "the LORD (BSB, KJV); Yahweh (WEB)", "God's personal name, revealed to Moses at the burning bush and linked in Exodus 3:14 to the verb \"to be\" (\"I AM WHO I AM\"). Out of reverence, Jewish readers stopped saying it aloud and read Adonai (\"Lord\") instead, which is why many English Bibles print it as \"the LORD\" in small capitals. The original pronunciation is not certain; \"Yahweh\" is the most widely accepted scholarly suggestion.", "Exodus 3:15", "H3068", "Draft"],
+  [7, "Old", "Hebrew", "חֶסֶד", "chesed", "loving devotion (BSB), goodness (KJV), loving kindness (WEB); elsewhere also mercy, steadfast love, faithful love", "Loyal, committed love that keeps its promises, especially within a covenant relationship. It joins kindness and faithfulness: not a passing feeling, but love that keeps showing up. Because no single English word carries all of this, translations vary widely.", "Exodus 34:6", "H2617", "Draft"],
+  [9, "Old", "Hebrew", "קָדוֹשׁ", "qadosh", "holy (BSB, KJV, WEB)", "Set apart: belonging to God and different from the ordinary. God is holy in His perfect purity and greatness, and people, places and things become holy when they are set apart for Him. The exact root meaning of the word is debated, so it is best understood from how the Bible uses it.", "Leviticus 19:2", "H6918", "Draft"],
+  [10, "Old", "Hebrew", "שָׁלוֹם", "shalom", "peace (BSB, KJV, WEB); elsewhere also welfare, well-being, safety", "More than the absence of conflict: wholeness, well-being and everything being as it should be, for a person, a family or a nation. It is also an everyday greeting that asks after someone's welfare. In the priestly blessing it is the last gift God gives His people.", "Numbers 6:26", "H7965", "Draft"],
+  [13, "Old", "Hebrew", "שְׁמַע", "shema", "Hear (BSB, KJV, WEB); elsewhere also listen, obey", "The command form of shama, \"to hear\". In Hebrew, hearing often includes paying attention and responding, so the same verb can be translated \"obey\". This verse begins the Shema, the confession of faith Jewish people recite every day, and Jesus quoted it as the first and greatest commandment (Mark 12:29).", "Deuteronomy 6:4", "H8085", "Draft"],
+  [35, "Old", "Hebrew", "אָמֵן", "amen", "Amen (BSB, KJV, WEB); elsewhere also \"truly\", \"so be it\"", "From a root meaning firm, reliable or true, the same family of words as faithfulness and believing. Saying \"Amen\" means \"It is true, let it be so\", agreeing with what has been said to God or about Him. Jesus used it in a new way at the start of His sayings: \"Truly I tell you\".", "Nehemiah 8:6", "H543", "Draft"],
+  [39, "Old", "Hebrew", "תּוֹרָה", "torah", "the Law, His law (BSB); law (KJV, WEB); elsewhere also instruction, teaching", "Usually translated \"law\", but its basic meaning is instruction or teaching, the kind a parent gives a child (Proverbs 1:8). It can mean God's commands, the five books of Moses, or God's teaching more broadly. Psalm 1 pictures it not as a burden but as something to delight in and think about day and night.", "Psalm 1:2", "H8451", "Draft"],
+  [42, "Old", "Hebrew", "אֱלֹהִים", "elohim", "God (BSB, KJV, WEB); elsewhere also gods, and sometimes judges or rulers", "The most common Hebrew word for God, used more than 2,500 times. Its form is plural, but when it refers to the God of Israel it takes singular verbs; many scholars explain this as a plural of majesty, expressing fullness and greatness rather than many gods. The same word can mean \"gods\" when it speaks of the nations' idols, so context decides.", "Psalm 46:1", "H430", "Draft"],
+  [45, "Old", "Hebrew", "נֶפֶשׁ", "nefesh", "soul (BSB, KJV, WEB); elsewhere also life, self, living being", "Often translated \"soul\", but it usually means the whole living person, not a separate inner part. It can also mean life, self, breath or appetite; in Genesis 2:7 the man became \"a living nefesh\", a living being. \"Bless the LORD, O my soul\" means \"with all that I am, bless the LORD\".", "Psalm 103:1", "H5315", "Draft"],
+  [51, "Old", "Hebrew", "כָּבוֹד", "kavod", "glory (BSB, KJV, WEB); elsewhere also honour, splendour, wealth", "From a root meaning heavy or weighty. Something with kavod carries weight: importance, honour, splendour, and sometimes riches. God's glory is the visible weight of His presence and greatness, and Isaiah hears that it fills the whole earth.", "Isaiah 6:3", "H3519", "Draft"],
+  [59, "Old", "Hebrew", "בְּרִית", "berit", "covenant (BSB, KJV, WEB)", "A binding agreement that creates a committed relationship, with promises and obligations, often confirmed by an oath or a sacrifice. God's covenants with Noah, Abraham, Israel and David shape the whole Old Testament story. Jeremiah promises a new covenant, which Jesus speaks of at the Last Supper (Luke 22:20).", "Jeremiah 31:31", "H1285", "Draft"],
+  [64, "Old", "Hebrew", "רוּחַ", "ruach", "Spirit (BSB, WEB), spirit (KJV); elsewhere also wind, breath", "Can mean wind, breath or spirit, and Ezekiel 37 uses it in all three senses. What connects them is invisible, moving, life-giving power. Used of God, it describes the Spirit of God who gives life, as in the valley of dry bones.", "Ezekiel 37:14", "H7307", "Draft"],
+  [71, "New", "Greek", "σῴζω", "sōzō", "save (BSB, KJV, WEB); elsewhere also heal, make well, rescue", "To rescue, or keep safe from danger. In the Gospels it is used both for healing (\"your faith has made you well\", Mark 5:34) and for rescue from sin and death. Here the angel ties it to the name Jesus (Yeshua), which means \"the LORD saves\".", "Matthew 1:21", "G4982", "Draft"],
+  [72, "New", "Greek", "ἐκκλησία", "ekklēsia", "church (BSB, KJV); assembly (WEB)", "In everyday Greek it meant an assembly: citizens gathered together. The Greek Old Testament used it for the assembly of Israel gathered before God, and Jesus uses it for the community He will build: people, not a building. It is often explained as \"called-out ones\" from its parts (ek, \"out\" + kaleo, \"call\"), but in real use it simply meant \"assembly\".", "Matthew 16:18", "G1577", "Draft"],
+  [76, "New", "Greek", "μετάνοια", "metanoia", "repent (BSB); repentance (KJV, WEB)", "A change of mind that leads to a change of direction. In the Bible it is more than feeling sorry: it means turning from sin back to God, like the Old Testament call to \"turn\" or \"return\". In Luke 15, one person's repentance brings joy in heaven, like a lost sheep that is found.", "Luke 15:7", "G3341", "Draft"],
+  [77, "New", "Greek", "λόγος", "logos", "Word (BSB, KJV, WEB); elsewhere also message, saying, account", "Usually \"word\", \"message\" or \"statement\". John uses it as a title for Jesus: God's Word, who was with God and was God. Readers who knew the Old Testament would think of God creating by His word in Genesis 1, while Greek thinkers used logos for the reason that orders the world; scholars discuss how much each background shaped John's meaning.", "John 1:1", "G3056", "Draft"],
+  [78, "New", "Greek", "φιλέω", "phileō", "love (BSB, KJV); have great affection for (WEB)", "To love as a friend, with warm affection; it is related to philos, \"friend\", and can also mean to kiss. Here it describes Jesus' love for Lazarus, and two verses later John uses agapao for the same family. Scholars disagree on how different the two verbs are in John: many think they overlap almost completely, while others see a real difference, especially in John 21.", "John 11:3", "G5368", "Draft"],
+  [79, "New", "Greek", "τετέλεσται", "tetelestai", "It is finished (BSB, KJV, WEB)", "A form of teleo, \"to finish, complete, carry out\". Its tense describes something completed with lasting results: Jesus' work was done and stays done. Some say tetelestai was written on receipts to mean \"paid in full\"; the evidence for that is thin, so treat it as an illustration rather than the meaning of the word here.", "John 19:30", "G5055", "Draft"],
+  [80, "New", "Greek", "πνεῦμα", "pneuma", "Holy Spirit, Spirit (BSB, WEB); Holy Ghost, Spirit (KJV); elsewhere also wind, breath", "Like the Hebrew ruach, it can mean wind, breath or spirit (Jesus plays on this in John 3:8). In Acts 2 it refers to the Holy Spirit, poured out at Pentecost as the prophets promised. The KJV often says \"Holy Ghost\", which meant the same as \"Holy Spirit\" in older English.", "Acts 2:4", "G4151", "Draft"],
+  [83, "New", "Greek", "εὐαγγέλιον", "euangelion", "gospel (BSB, KJV); Good News (WEB)", "Literally \"good news\" (eu, \"good\" + angelia, \"message\"). In the Roman world it could announce a victory or the birth or rule of an emperor; Christians used it for the news about Jesus. The English word \"gospel\" comes from Old English godspel, \"good news\".", "Romans 1:16", "G2098", "Draft"],
+  [84, "New", "Greek", "κύριος", "kyrios", "Lord (BSB, WEB); \"the Lord Jesus\" (KJV)", "Can mean \"sir\", \"master\" or \"owner\", depending on who is speaking. The Greek Old Testament used kyrios in place of God's name, YHWH, so confessing \"Jesus is Lord\" was a bold claim. Notice the KJV reads \"the Lord Jesus\" here while the BSB and WEB read \"Jesus is Lord\": the Greek allows both, and translators decide from context.", "Romans 10:9", "G2962", "Draft"],
+  [85, "New", "Greek", "ἀγάπη", "agapē", "love (BSB, WEB); charity (KJV)", "The main New Testament word for love, especially God's love and the love believers show one another, defined here by how it acts: patient, kind and not self-seeking. The KJV's \"charity\" comes from the Latin caritas, meaning love, not giving money. Agape is often called a uniquely divine love, but the word itself is ordinary Greek; its depth comes from how the Bible uses it.", "1 Corinthians 13:4", "G26", "Draft"],
+  [86, "New", "Greek", "καινός", "kainos", "new (BSB, KJV, WEB)", "New, often in the sense of fresh or a new kind, not only recent. Paul uses it for the \"new creation\" that begins when someone is in Christ, the idea behind the name of this reading journey. Some teachers sharply contrast kainos (\"new in kind\") with neos (\"new in time\"); the difference is real in some places, but the two words often overlap.", "2 Corinthians 5:17", "G2537", "Draft"],
+  [87, "New", "Greek", "χάρις", "charis", "grace (BSB, KJV, WEB); elsewhere also favour, kindness, thanks", "Undeserved favour and kindness, freely given. In everyday Greek it could mean a favour or gift and also the gratitude it creates; it is the word for \"thanks\" too. Paul uses it for God's free gift of salvation, received through faith and not earned.", "Ephesians 2:8", "G5485", "Draft"],
+  [89, "New", "Greek", "πίστις", "pistis", "faith (BSB, KJV, WEB); elsewhere also faithfulness, trust, belief", "Trust, confidence and reliance on someone, and it can also mean faithfulness or loyalty. Biblical faith is not wishful thinking but trusting God because of who He is. Hebrews 11 describes it, then shows it in action through people who trusted God's promises.", "Hebrews 11:1", "G4102", "Draft"],
+  [90, "New", "Greek", "παράκλητος", "paraklētos", "advocate (BSB, KJV); Counselor (WEB); in John 14 also Helper, Comforter", "Literally \"one called alongside\": someone who stands with you, especially to speak on your behalf. Jesus uses it for the Holy Spirit (John 14:16), and here John uses it for Jesus Himself, who speaks for us before the Father. Translations vary (Advocate, Helper, Comforter, Counselor) because no single English word covers it.", "1 John 2:1", "G3875", "Draft"]
+];
+
+function wbLog_(where, memberId, detail) {
+  try { sheet_('Logs', LOGS_COLS).appendRow([Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'), where, memberId || '', String(detail || '').slice(0, 1500)]); } catch (e) {}
+}
+// Text written to the sheet: a leading = + - @ would be read as a formula, so it is stored as plain text.
+function sheetText_(s) { s = String(s == null ? '' : s); return /^[=+\-@]/.test(s) ? "'" + s : s; }
+function wordStudies_() {
+  const cache = CacheService.getScriptCache(), ck = 'nc_words_' + ENV_; const hit = cache.get(ck);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  const v = sheet_('WordStudies', WS_COLS).getDataRange().getValues(); const out = [];
+  for (let i = 1; i < v.length; i++) {
+    const o = {}; WS_COLS.forEach(function(k, j){ const x = v[i][j]; o[k] = String(x == null ? '' : x).trim(); });
+    o.Day = Math.round(Number(o.Day)) || 0; if (!o.Day || !o.Word) continue;
+    o.Status = /^approved$/i.test(o.Status) ? 'Approved' : 'Draft'; out.push(o);
+  }
+  out.sort(function(a, b){ return a.Day - b.Day; });
+  try { cache.put(ck, JSON.stringify(out), 300); } catch (e) {}
+  return out;
+}
+function pubWord_(w, lead) {
+  const o = { day: w.Day, testament: w.Testament, language: w.Language, lang: /greek/i.test(w.Language) ? 'grc' : 'he', word: w.Word, translit: w.Transliteration,
+    english: w.EnglishTranslations, meaning: w.Meaning, ref: w.VerseRef, strongs: w.StrongsNumber };
+  if (lead) o.status = w.Status;
+  return o;
+}
+function dayLang_(day) { const p = plan_('bible93'); const d = p.days[Math.min(Math.max(day, 1), p.n) - 1]; return d && d[0][0] >= 39 ? 'Greek' : 'Hebrew'; }
+// One small record per member: today's teacher messages and how many conversations they have started.
+function tutorUse_(memberId) {
+  let u = {}; try { u = JSON.parse(prop_('TUTOR_' + memberId) || '{}') || {}; } catch (e) {}
+  if (u.d !== today_()) { u.d = today_(); u.n = 0; }
+  u.n = Number(u.n) || 0; u.c = Number(u.c) || 0; return u;
+}
+function saveTutorUse_(memberId, u) { setProp_('TUTOR_' + memberId, JSON.stringify(u)); }
+function learnedRows_(memberId) {
+  return sheet_('WordProgress', WP_COLS).getDataRange().getValues().slice(1)
+    .filter(function(r){ return String(r[0]) === memberId && (r[3] === true || String(r[3]).toUpperCase() === 'TRUE'); })
+    .map(function(r){ const dl = r[4] instanceof Date ? Utilities.formatDate(r[4], TZ, 'yyyy-MM-dd') : String(r[4] || ''); return { day: Number(r[1]) || 0, word: String(r[2]), date: dl }; });
+}
+
+// Today's word, the words so far, and the member's progress.
+function apiWords(token) {
+  const me = byToken_(token), lead = isLeader_(me), ch = challenge_(MAIN_ID), t = Math.min(dayIndexFor_(ch), ch.n);
+  const words = wordStudies_().filter(function(w){ return lead || (w.Status === 'Approved' && w.Day <= t); }).map(function(w){ return pubWord_(w, lead); });
+  const u = tutorUse_(me.id);
+  return { day: t, words: words, learned: learnedRows_(me.id), convs: u.c, used: u.n, limit: TEACHER_DAILY_LIMIT,
+    teacher: !!PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY') };
+}
+function apiWordLearn(token, day, word, on) {
+  return withLock_(function(){
+    const me = byToken_(token); day = Math.round(Number(day)) || 0; word = clean_(word, 60);
+    const w = wordStudies_().filter(function(x){ return x.Day === day && x.Word === word; })[0];
+    if (!w || (w.Status !== 'Approved' && !isLeader_(me))) throw new Error('That word is not available.');
+    const sh = sheet_('WordProgress', WP_COLS); const v = sh.getDataRange().getValues(); const when = on ? today_() : '';
+    for (let i = 1; i < v.length; i++) if (String(v[i][0]) === me.id && Number(v[i][1]) === day && String(v[i][2]) === word) {
+      sh.getRange(i + 1, 4, 1, 2).setValues([[on ? 'TRUE' : 'FALSE', when]]); return { learned: learnedRows_(me.id) };
+    }
+    if (on) sh.appendRow([me.id, String(day), word, 'TRUE', when]);
+    return { learned: learnedRows_(me.id) };
+  });
+}
+// You (and only you) can approve a draft word from the app; you can also type "Approved" in the Status column.
+function apiWordApprove(token, day) {
+  withLock_(function(){
+    const me = byToken_(token); if (!isLeader_(me)) throw new Error('Only the New Creation team can approve word studies.');
+    const sh = sheet_('WordStudies', WS_COLS); const v = sh.getDataRange().getValues(); const st = WS_COLS.indexOf('Status') + 1;
+    for (let i = 1; i < v.length; i++) if (Math.round(Number(v[i][0])) === Math.round(Number(day))) sh.getRange(i + 1, st).setValue('Approved');
+    CacheService.getScriptCache().remove('nc_words_' + ENV_);
+  });
+  return apiWords(token);
+}
+
+// ---------- the teacher ----------
+function tutorHistory_(memberId, conv) {
+  const ck = 'tc:' + ENV_ + ':' + memberId + ':' + conv; const hit = CacheService.getScriptCache().get(ck);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  const sh = sheet_('TutorChats', TC_COLS); const last = sh.getLastRow(); if (last < 2) return [];
+  const from = Math.max(2, last - 1999); const v = sh.getRange(from, 1, last - from + 1, TC_COLS.length).getValues(); const out = [];
+  v.forEach(function(r){ if (String(r[0]) === memberId && String(r[1]) === conv) out.push({ role: String(r[3]) === 'assistant' ? 'assistant' : 'user', content: String(r[4]) }); });
+  return out.slice(-TEACHER_HISTORY);
+}
+function claude_(system, messages) {
+  const P = PropertiesService.getScriptProperties(); const key = P.getProperty('CLAUDE_API_KEY');
+  if (!key) throw new Error('CLAUDE_API_KEY is not set in Script Properties.');
+  const model = (P.getProperty('CLAUDE_MODEL') || TEACHER_DEFAULT_MODEL).trim();
+  const res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    payload: JSON.stringify({ model: model, max_tokens: TEACHER_MAX_TOKENS, system: system, messages: messages })
+  });
+  const code = res.getResponseCode(), body = res.getContentText();
+  if (code !== 200) throw new Error('Claude API ' + code + ' (model ' + model + '): ' + body.slice(0, 500));
+  const j = JSON.parse(body);
+  const text = (j.content || []).filter(function(c){ return c.type === 'text'; }).map(function(c){ return c.text; }).join('\n').trim();
+  if (!text) throw new Error('Claude API returned no text (stop reason ' + j.stop_reason + ').');
+  return { text: text, cut: j.stop_reason === 'max_tokens' };
+}
+// o = { conv, text, day, word, lang }. Day and word only describe what the member is looking at; the passage is worked out here.
+function apiTeacher(token, o) {
+  o = o || {}; const me = byToken_(token);
+  const text = String(o.text || '').replace(/[<>]/g, '').trim().slice(0, 1200); if (!text) throw new Error('Please type a question first.');
+  const conv = String(o.conv || '').replace(/[^a-z0-9]/gi, '').slice(0, 24); if (conv.length < 6) throw new Error('Please start a new conversation.');
+  const ch = challenge_(MAIN_ID), today = Math.min(Math.max(dayIndexFor_(ch), 1), ch.n);
+  let day = Math.round(Number(o.day)) || today; if (day < 1 || day > ch.n) day = today;
+  const ws = wordStudies_().filter(function(w){ return w.Day === day && (w.Status === 'Approved' || isLeader_(me)); })[0];
+  const word = clean_(o.word, 80) || (ws ? ws.Word + ' (' + ws.Transliteration + ')' : 'none chosen yet');
+  const language = o.lang === 'grc' ? 'Greek' : o.lang === 'he' ? 'Hebrew' : (ws ? ws.Language : dayLang_(day));
+  const system = TEACHER_PROMPT.replace('{day}', day).replace('{passage}', rangeLabel_(CUM[day - 1], CUM[day])).replace('{word}', word).replace('{language}', language);
+  // Reserve one of today's messages first, so two quick taps cannot go over the limit.
+  const before = withLock_(function(){ const u = tutorUse_(me.id); if (u.n >= TEACHER_DAILY_LIMIT) return null; u.n++; saveTutorUse_(me.id, u); return u; });
+  if (!before) return { limited: true, used: TEACHER_DAILY_LIMIT, limit: TEACHER_DAILY_LIMIT };
+  let history = tutorHistory_(me.id, conv); while (history.length && history[0].role !== 'user') history.shift();
+  let r;
+  try { r = claude_(system, history.concat([{ role: 'user', content: text }])); }
+  catch (err) {
+    wbLog_('teacher', me.id, String(err && err.message || err));
+    withLock_(function(){ const u = tutorUse_(me.id); u.n = Math.max(0, u.n - 1); saveTutorUse_(me.id, u); });
+    throw new Error(TEACHER_DOWN);
+  }
+  const reply = r.text + (r.cut ? '\n\n(My answer was cut short. Ask me to continue if you would like the rest.)' : '');
+  const stamp = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'), wcol = ws ? ws.Word : clean_(o.word, 80);
+  const u = withLock_(function(){
+    const sh = sheet_('TutorChats', TC_COLS);
+    sh.appendRow([me.id, conv, stamp, 'user', sheetText_(text), String(day), sheetText_(wcol)]);
+    sh.appendRow([me.id, conv, stamp, 'assistant', sheetText_(reply), String(day), sheetText_(wcol)]);
+    const x = tutorUse_(me.id); if (!history.length) x.c++; saveTutorUse_(me.id, x); return x;
+  });
+  const next = history.concat([{ role: 'user', content: text }, { role: 'assistant', content: reply }]).slice(-TEACHER_HISTORY);
+  try { CacheService.getScriptCache().put('tc:' + ENV_ + ':' + me.id + ':' + conv, JSON.stringify(next), 21600); } catch (e) {}
+  return { reply: reply, used: u.n, limit: TEACHER_DAILY_LIMIT, convs: u.c };
+}
+
+// ---------- run these from the Apps Script editor ----------
+// 1. Create the four new tabs and add the 27 starter words as Draft. Never overwrites: does nothing if words already exist.
+function seedWordStudies() {
+  sheet_('WordProgress', WP_COLS); sheet_('TutorChats', TC_COLS); sheet_('Logs', LOGS_COLS);
+  const sh = sheet_('WordStudies', WS_COLS);
+  if (sh.getLastRow() > 1) { Logger.log('WordStudies already has ' + (sh.getLastRow() - 1) + ' rows. Nothing was changed.'); return; }
+  sh.getRange(2, 1, WORD_SEED.length, WS_COLS.length).setValues(WORD_SEED.map(function(r){ return r.map(String); }));
+  CacheService.getScriptCache().remove('nc_words_' + ENV_);
+  Logger.log('Added ' + WORD_SEED.length + ' word studies as Draft. Review each row, then set Status to Approved.');
+}
+// 2. Approves Google's request for internet access (needed once) and checks the Claude key and model. Prints no secrets.
+function teacherCheck() {
+  try { const r = claude_('Reply with exactly: The teacher is ready.', [{ role: 'user', content: 'Are you ready?' }]); Logger.log('OK: ' + r.text); }
+  catch (e) { Logger.log('Problem: ' + e.message); }
 }

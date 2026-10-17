@@ -7,7 +7,8 @@ import { S, signedIn, loadSnapshot, refresh, onChange } from './state.js';
 const VIEWS = {
   today: () => import('./views/today.js'), bible: () => import('./views/bible.js'), original: () => import('./views/original.js'),
   circle: () => import('./views/circle.js'), journey: () => import('./views/journey.js'), me: () => import('./views/me.js'),
-  leader: () => import('./views/leader.js'), privacy: () => import('./views/privacy.js'), auth: () => import('./views/auth.js'),
+  words: () => import('./views/words.js'), teacher: () => import('./views/teacher.js'),
+  leader: () => import('./views/leader.js'), teach: () => import('./views/teach.js'), privacy: () => import('./views/privacy.js'), auth: () => import('./views/auth.js'),
 };
 const NAV = [['today', 'Today', 'today'], ['bible', 'Bible', 'bible'], ['original', 'Original', 'original'], ['circle', 'Circle', 'circle'], ['journey', 'Journey', 'journey'], ['me', 'Me', 'me']];
 
@@ -49,12 +50,13 @@ const ROOTS = ['today', 'bible', 'original', 'circle', 'journey', 'me'];
 function parentOf(r) {
   if (r.name === 'original' && r.parts[0]) return `#/bible/${r.parts[0]}/${r.parts[1] || 1}${r.parts[2] ? '?v=' + r.parts[2] : ''}`;
   if (r.name === 'privacy' || r.name === 'leader') return '#/me';
+  if (r.name === 'teacher' || (r.name === 'words' && r.parts.length)) return '#/words';
   if (r.name === 'bible' && r.q.has('search')) return '#/bible';
   if (r.name === 'circle' && [...r.q.keys()].length) return '#/circle';
   if (ROOTS.includes(r.name) && !r.parts.length) return null;
   return '#/today';
 }
-const PAGE_NAMES = { today: 'Today', bible: 'Bible', original: 'Original', circle: 'Circle', journey: 'Journey', me: 'Me', leader: 'Leader', privacy: 'Privacy' };
+const PAGE_NAMES = { words: 'Word study', teacher: 'Teacher', today: 'Today', bible: 'Bible', original: 'Original', circle: 'Circle', journey: 'Journey', me: 'Me', leader: 'Leader', privacy: 'Privacy' };
 function backTarget() {
   if (hist.length > 1) { const prev = hist[hist.length - 2]; const n = (prev.replace(/^#\/?/, '').split(/[/?]/)[0]) || 'today'; return { history: true, label: PAGE_NAMES[n] || 'previous page' }; }
   const p = parentOf(parseRoute()); if (!p) return null;
@@ -75,8 +77,8 @@ export async function render() {
   if (!$('#main') || !$('.nav') || ($('.nav .lead-only') ? !S.data.me.leader : S.data.me.leader)) { $('#root').innerHTML = shell(); paintSync(); const dr = $('#demoReset'); if (dr) dr.onclick = async (e) => { e.preventDefault(); (await (await import('./demo.js')).createDemo()).reset(); }; }
   paintBack();
   let name = r.name; if (!VIEWS[name] || name === 'auth') name = 'today';
-  if (name === 'leader' && !S.data.me.leader) name = 'me';
-  document.querySelectorAll('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.nav === name || (name === 'privacy' && a.dataset.nav === 'me')));
+  if ((name === 'leader' || name === 'teach') && !S.data.me.leader) name = 'me';
+  document.querySelectorAll('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.nav === name || (name === 'privacy' && a.dataset.nav === 'me') || (name === 'teach' && a.dataset.nav === 'leader')));
   document.querySelectorAll('[data-nav]').forEach((a) => { if (a.hasAttribute('aria-current')) a.setAttribute('aria-current', 'page'); });
   const m = await VIEWS[name](); if (seq !== renderSeq) return;
   const main = $('#main'); const same = current && current.name === name;
@@ -84,6 +86,7 @@ export async function render() {
   main.innerHTML = `<div class="view">${html}</div>`;
   current = { name, mod: m };
   m.mount && m.mount(main, r);
+  if (name === 'today' && S.fresh) import('./emailask.js').then((x) => x.maybeAsk()).catch(() => {});
   document.title = (m.title ? (typeof m.title === 'function' ? m.title(r) : m.title) + ' · ' : '') + 'New Creation';
   if (!same && !r.q.get('v')) { window.scrollTo(0, 0); main.focus({ preventScroll: true }); }
 }
