@@ -4,8 +4,9 @@ import { call } from '../api.js';
 import { S } from '../state.js';
 import { go } from '../app.js';
 import * as WB from '../words.js';
+import * as LS from '../lessons.js';
 
-export const title = (r) => ({ alphabet: 'Alphabet', practice: 'Practice' }[r.parts[0]] || 'The Word Behind the Word');
+export const title = (r) => ({ alphabet: 'Alphabet', practice: 'Practice', listen: 'Listen and learn' }[r.parts[0]] || 'The Word Behind the Word');
 let data = null;
 
 // ---------- the word card (also used on Today) ----------
@@ -51,6 +52,7 @@ export async function render(r) {
   else if (WB.stale()) WB.loadWords().then((x) => { data = x; if (!page && /^#\/words\/?$/.test(location.hash)) go(location.hash); }).catch(() => {});
   if (page === 'alphabet') return alphabetPage(r);
   if (page === 'practice') return practicePage(r);
+  if (page === 'listen') return r.parts[1] ? lessonPage(r.parts[1]) : listenPage();
   return overview();
 }
 
@@ -65,6 +67,7 @@ function overview() {
     <div class="tiles">
       <a class="tile" href="#/teacher">${icon('chat')}<b>Ask the Teacher</b><span>Ask about any word, verse or translation</span></a>
       <a class="tile" href="#/words/alphabet?l=he">${icon('original')}<b>Alphabet</b><span>Hebrew and Greek letters</span></a>
+      <a class="tile" href="#/words/listen">${icon('listen')}<b>Listen and learn</b><span>Audio lessons, hands-free</span></a>
       <a class="tile" href="#/words/practice">${icon('check')}<b>Practice</b><span>Flashcards and quizzes</span></a>
     </div>
     ${list.length ? `<section class="card"><h3>${lead ? 'All word studies (you see drafts and future days)' : 'Words so far'}</h3><div class="list-plain">${list.map((w) => `
@@ -181,11 +184,55 @@ export function mount(root, r) {
       $('#lKnow', s).onclick = async () => { await WB.setLetterKnown(l, x[0], !known).catch(() => {}); closeSheet(); rerender(); };
     });
   }
+  if (page === 'listen') mountListen(root, r);
   if (page === 'practice') {
     const q = new URLSearchParams(location.hash.split('?')[1] || '');
     $$('[data-set]', root).forEach((b) => b.onclick = () => { q.set('set', b.dataset.set); go(`#/words/practice?${q}`); });
     $$('[data-mode]', root).forEach((b) => b.onclick = () => { q.set('mode', b.dataset.mode); go(`#/words/practice?${q}`); });
     if (P && P.mode === 'quiz') paintQuiz(root); else paintCard(root);
   }
+}
+// ---------- Listen and learn ----------
+let PL = null, LESSON = null, STEPS = null;
+function listenPage() {
+  const L = LS.lessonList(WB.wordsSoFar(data)); const done = LS.doneSet();
+  const group = (title, items) => items.length ? `<section class="card"><h3>${title}</h3><div class="list-plain">${items.map((l) => `
+    <a class="itemlink" href="#/words/listen/${l.id}"><span class="grow"><b>${esc(l.title)}</b><span class="small faint" style="display:block">${esc(l.sub)} · about ${l.mins} min</span></span>${done.has(l.id) ? `<span class="pill ok">${icon('check', 'ico sm')} Done</span>` : ''}${icon('play')}</a>`).join('')}</div></section>` : '';
+  return `<div class="stack-sm"><p class="eyebrow">The Word Behind the Word</p><h1>Listen and learn</h1>
+      <p class="muted">Short spoken lessons you can follow with your ears: on a walk, in the car or with your eyes closed. Each one teaches, pauses for you to repeat, and ends with a quick check.</p></div>
+    ${WB.ttsOK() ? '' : '<p class="notice small">This browser cannot speak lessons aloud. Try Chrome on Android or Safari on iPhone.</p>'}
+    <p class="small faint">You have listened to ${done.size} of ${L.length} lessons. Lessons use your phone's English voice (change it under Voice settings in Ask the Teacher). Keep the screen on while you listen: most phones stop the voice when the screen locks.</p>
+    ${group('Word lessons', L.filter((l) => l.kind === 'word'))}${group('Hebrew', L.filter((l) => l.lang === 'he'))}${group('Greek', L.filter((l) => l.lang === 'grc'))}`;
+}
+async function lessonPage(id) {
+  if (PL) { PL.stop(); PL = null; }
+  LESSON = LS.lessonList(WB.wordsSoFar(data)).find((l) => l.id === id);
+  if (!LESSON) return `<h1>Listen and learn</h1><div class="empty"><p>That lesson isn't available yet.</p><a class="btn" href="#/words/listen">All lessons</a></div>`;
+  STEPS = await LS.buildSteps(LESSON);
+  return `<div class="stack-sm"><p class="eyebrow">Listen and learn</p><h1>${esc(LESSON.title)}</h1><p class="muted small">${esc(LESSON.sub)}</p></div>
+    <section class="card lesson" aria-live="polite"><div class="lesson-stage" id="lsStage"></div>
+      <div class="bar" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" aria-valuemax="${STEPS.length}" aria-valuenow="0"><span id="lsBar" style="width:0%"></span></div>
+      <p class="small faint" id="lsCount"></p>
+      <div class="lesson-controls"><button class="icon-btn" id="lsPrev" aria-label="Previous part">${icon('back')}</button>
+        <button class="btn primary lesson-play" id="lsPlay">${icon('play')} Start the lesson</button>
+        <button class="icon-btn" id="lsNext" aria-label="Next part">${icon('next')}</button></div></section>
+    <div class="btns">${LESSON.kind === 'word' ? `<a class="btn" href="#/teacher?day=${LESSON.w.day}">${icon('chat')} Ask the Teacher about ${esc(LESSON.w.translit)}</a>` : `<a class="btn" href="#/words/practice?set=${LESSON.lang}">${icon('check')} Practise these letters</a>`}<a class="btn" href="#/words/listen">All lessons</a></div>`;
+}
+function mountListen(root, r) {
+  if (!r.parts[1] || !STEPS) return;
+  const stage = $('#lsStage', root), btn = $('#lsPlay', root);
+  const paintStep = (i, playing) => {
+    const st = STEPS[Math.min(i, STEPS.length - 1)].show || {};
+    stage.innerHTML = `${st.big ? `<p class="${WB.scriptCls(st.lang)} huge" ${WB.scriptAttrs(st.lang)}>${esc(st.big)}</p>` : ''}${st.caption ? `<p class="lesson-cap">${esc(st.caption)}</p>` : ''}${st.text ? `<p class="lesson-text">${esc(st.text)}</p>` : ''}`;
+    const n = Math.min(i + (playing ? 1 : 0), STEPS.length); $('#lsBar', root).style.width = `${Math.round(Math.min(i, STEPS.length) / STEPS.length * 100)}%`;
+    $('#lsCount', root).textContent = i >= STEPS.length ? 'Lesson complete' : `Part ${Math.min(i + 1, STEPS.length)} of ${STEPS.length}`; void n;
+    btn.innerHTML = playing ? `${icon('pause')} Pause` : i >= STEPS.length ? `${icon('play')} Listen again` : i > 0 ? `${icon('play')} Continue` : `${icon('play')} Start the lesson`;
+  };
+  PL = LS.createPlayer(STEPS, { onStep: paintStep, onEnd: () => { LS.markDone(LESSON.id).catch(() => {}); paintStep(STEPS.length, false); toast('Lesson complete. Well done.'); } });
+  paintStep(0, false);
+  btn.onclick = () => { if (!WB.ttsOK()) { toast('This browser cannot speak lessons aloud.'); return; } if (PL.playing) PL.pause(); else PL.play(); };
+  $('#lsNext', root).onclick = () => PL.next(); $('#lsPrev', root).onclick = () => PL.prev();
+  const stop = () => { if (PL) { PL.stop(); PL = null; } window.removeEventListener('hashchange', stop); };
+  window.addEventListener('hashchange', stop);
 }
 export function onData() { /* word data refreshes itself; reading-plan updates don't change this page */ }
