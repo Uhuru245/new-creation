@@ -22,11 +22,12 @@ export const go = (hash) => { if (location.hash === hash) render(); else locatio
 let current = null, renderSeq = 0, syncState = { status: 'synced', pending: 0 };
 function shell() {
   const lead = S.data && S.data.me && S.data.me.leader;
-  const items = NAV.concat(lead ? [['leader', 'Leader', 'leader']] : []);
+  // The Word Behind the Word has its own tab, always the last one.
+  const items = NAV.concat(lead ? [['leader', 'Leader', 'leader']] : []).concat([['words', 'Words', 'word']]);
   return `${DEMO ? '<div class="demo-banner" role="note">Demonstration with sample data. Nothing here is real or shared. <a href="?demo=1" id="demoReset" style="color:#fff">Reset demo</a></div>' : ''}
   <header class="topbar" id="topbar"><button class="back-btn" id="backBtn" type="button" hidden>${icon('back')}<span>Back</span></button><a class="brand" href="#/today" aria-label="New Creation home">${emblem()}<span>New Creation</span></a>
     <div class="top-actions"><span class="sync" id="sync" role="status" aria-live="polite"></span></div></header>
-  <nav class="nav" aria-label="Main" style="--n:${NAV.length}"><a class="nav-brand" href="#/today" aria-hidden="true" tabindex="-1">${emblem()}<span>New Creation</span></a>${items.map(([k, l, i]) => `<a href="#/${k}" data-nav="${k}" ${k === 'leader' ? 'class="lead-only"' : ''}>${icon(i)}<span>${l}</span></a>`).join('')}</nav>
+  <nav class="nav" aria-label="Main" style="--n:${NAV.length + 1}"><a class="nav-brand" href="#/today" aria-hidden="true" tabindex="-1">${emblem()}<span>New Creation</span></a>${items.map(([k, l, i]) => `<a href="#/${k}" data-nav="${k}" ${k === 'leader' ? 'class="lead-only"' : ''}>${icon(i)}<span>${l}</span></a>`).join('')}</nav>
   <main id="main" tabindex="-1"></main>`;
 }
 function paintSync() {
@@ -46,7 +47,7 @@ function trackHistory() {
   if (hist.length > 1 && hist[hist.length - 2] === h) hist.pop(); else if (hist[hist.length - 1] !== h) hist.push(h);
   hist = hist.slice(-50); try { sessionStorage.setItem(HK, JSON.stringify(hist)); } catch (e) { /* private mode */ }
 }
-const ROOTS = ['today', 'bible', 'original', 'circle', 'journey', 'me'];
+const ROOTS = ['today', 'bible', 'original', 'circle', 'journey', 'me', 'words'];
 function parentOf(r) {
   if (r.name === 'original' && r.parts[0]) return `#/bible/${r.parts[0]}/${r.parts[1] || 1}${r.parts[2] ? '?v=' + r.parts[2] : ''}`;
   if (r.name === 'privacy' || r.name === 'leader') return '#/me';
@@ -78,7 +79,7 @@ export async function render() {
   paintBack();
   let name = r.name; if (!VIEWS[name] || name === 'auth') name = 'today';
   if ((name === 'leader' || name === 'teach') && !S.data.me.leader) name = 'me';
-  document.querySelectorAll('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.nav === name || (name === 'privacy' && a.dataset.nav === 'me') || (name === 'teach' && a.dataset.nav === 'leader')));
+  document.querySelectorAll('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.nav === name || (name === 'privacy' && a.dataset.nav === 'me') || (name === 'teach' && a.dataset.nav === 'leader') || (name === 'teacher' && a.dataset.nav === 'words')));
   document.querySelectorAll('[data-nav]').forEach((a) => { if (a.hasAttribute('aria-current')) a.setAttribute('aria-current', 'page'); });
   const m = await VIEWS[name](); if (seq !== renderSeq) return;
   const main = $('#main'); const same = current && current.name === name;
