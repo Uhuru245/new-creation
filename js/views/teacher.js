@@ -44,10 +44,11 @@ export async function render(r) {
       ${WB.micOK() ? `<button type="button" class="icon-btn" id="mic" aria-label="Speak your question" aria-pressed="false">${micIcon}</button>` : ''}
       <button class="btn primary" id="send" aria-label="Send">${icon('next')}</button></form>
     <div class="row wrap small"><span class="faint" id="quota">${left == null ? '' : quotaText(left)}</span><span class="spacer"></span>
-      ${WB.ttsOK() ? `<button class="link" id="voiceSet">Voice settings</button>` : ''}<button class="link" id="newConv">Start a new conversation</button></div>
+      ${WB.ttsOK() ? `<button class="link" id="voiceAuto" aria-pressed="${WB.ttsPrefs().auto}">${voiceLabel()}</button><button class="link" id="voiceSet">Voice settings</button>` : ''}<button class="link" id="newConv">Start a new conversation</button></div>
   </div>`;
 }
 const micIcon = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="3" width="7" height="11.5" rx="3.5"/><path opacity=".5" d="M5.5 11a6.5 6.5 0 0 0 13 0h2a8.5 8.5 0 0 1-7.5 8.4V22h-2v-2.6A8.5 8.5 0 0 1 3.5 11Z"/></svg>';
+const voiceLabel = () => (WB.ttsPrefs().auto ? 'Voice replies: on' : 'Voice replies: off');
 const quotaText = (left) => (left > 0 ? `${left} question${left === 1 ? '' : 's'} left today` : 'No questions left today');
 const intro = () => `<div class="msg teacher"><div class="body"><p>Hello. I'm here to help you understand what you read, one word at a time. Ask me anything about ${conv.ctx.word ? 'this word' : "today's reading"}, or tap one of the suggestions below.</p></div></div>`;
 function bubble(m, i) {
@@ -70,6 +71,7 @@ function paint(root) {
 }
 async function ask(root, text) {
   text = String(text || '').trim(); if (!text || busy) return;
+  const voice = WB.ttsOK() && WB.ttsPrefs().auto; if (voice) { WB.stopSpeaking(); WB.primeSpeech(); }
   conv.msgs.push({ role: 'user', text }); store.pset(KEY, conv); busy = true; paint(root);
   const send = $('#send', root); if (send) send.disabled = true;
   try {
@@ -83,7 +85,11 @@ async function ask(root, text) {
     conv.msgs.pop(); const box = $('#q', root); if (box && !box.value) box.value = text;
     conv.msgs.push({ role: 'note', text: e.network ? e.message : /Unknown request/.test(e.message) ? 'The teacher is not switched on yet. Please check back soon.' : (e.message || 'The teacher is unavailable right now. Please try again in a few minutes.') });
   } finally {
-    busy = false; store.pset(KEY, conv); if (send) send.disabled = false; paint(root);
+    busy = false; store.pset(KEY, conv); if (send) send.disabled = false;
+    // Voice replies: the teacher answers out loud (English; Hebrew and Greek are read by their English spelling).
+    const i = conv.msgs.length - 1; const m = conv.msgs[i];
+    if (voice && m && m.role === 'assistant' && document.contains(root)) WB.speak(m.text, 'm' + i, () => paint(root));
+    paint(root);
   }
 }
 
@@ -97,13 +103,18 @@ export function mount(root, r) {
   const mic = $('#mic', root);
   if (mic) mic.onclick = () => {
     if (rec) { try { rec.stop(); } catch (e) {} return; }
-    rec = WB.listenOnce((t) => { q.value = (q.value ? q.value + ' ' : '') + t; q.focus(); }, (st, err) => {
+    if (WB.ttsPrefs().auto) WB.primeSpeech();
+    // Speak a question and it is sent straight away, so the conversation can happen by voice.
+    rec = WB.listenOnce((t) => { const full = (q.value ? q.value + ' ' : '') + t; q.value = ''; ask(root, full); }, (st, err) => {
       mic.setAttribute('aria-pressed', st === 'start'); mic.classList.toggle('live', st === 'start');
       if (st !== 'start') rec = null;
       if (st === 'error' && err && err !== 'no-speech' && err !== 'aborted') toast(err === 'not-allowed' ? 'Microphone access was not allowed.' : 'Voice input did not work. Please type instead.');
     });
   };
   const vs = $('#voiceSet', root); if (vs) vs.onclick = voiceSheet;
+  const va = $('#voiceAuto', root);
+  if (va) va.onclick = () => { const on = !WB.ttsPrefs().auto; WB.setTtsPrefs({ auto: on }); if (!on) WB.stopSpeaking(); va.textContent = voiceLabel(); va.setAttribute('aria-pressed', on); paint(root); toast(on ? 'The teacher will answer out loud.' : 'Voice replies are off. Tap Read aloud on any answer to hear it.'); };
+  window.addEventListener('hashchange', () => WB.stopSpeaking(), { once: true });
   if (r.q.get('ask') === 'quiz' && !conv.msgs.length) ask(root, STARTERS[2][1](conv.ctx));
   // Keep the teacher's usage count fresh.
   if (!WB.cached() || WB.stale()) WB.loadWords().then((W) => { const qt = $('#quota', root); if (qt) qt.textContent = quotaText(Math.max(0, W.limit - W.used)); }).catch(() => {});

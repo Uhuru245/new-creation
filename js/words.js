@@ -104,7 +104,9 @@ export const BREATHING = [
 
 // ---------- read aloud (English only: Hebrew and Greek script is skipped, the transliteration is read instead) ----------
 export const ttsOK = () => 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-export const ttsPrefs = () => ({ voice: '', rate: 1, ...(store.json('nc.tts', {}) || {}) });
+export const ttsPrefs = () => ({ voice: '', rate: 1, auto: true, ...(store.json('nc.tts', {}) || {}) });
+// iPhones only allow speech that starts from a tap: a silent utterance during the tap unlocks the later spoken reply.
+export function primeSpeech() { if (!ttsOK()) return; try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) { /* not supported */ } }
 export const setTtsPrefs = (p) => store.setJson('nc.tts', { ...ttsPrefs(), ...p });
 export function englishVoices() {
   if (!ttsOK()) return [];
